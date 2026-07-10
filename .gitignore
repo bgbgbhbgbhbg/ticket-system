@@ -427,3 +427,24 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+
+# 環境變數 / 機密
+.env
+.env.local
+**/appsettings.Development.json
+**/appsettings.Local.json
+
+# .NET
+backend/**/bin/
+backend/**/obj/
+
+# Node
+frontend/node_modules/
+frontend/.next/
+
+# DB 相關
+*.pgdata
+
+# OS
+.DS_Store
