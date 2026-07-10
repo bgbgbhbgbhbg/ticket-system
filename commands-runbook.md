@@ -71,9 +71,9 @@ cd ../..
 ### 2.4 Application 層套件
 
 ```bash
-cd TicketBooking.Application
+# cd TicketBooking.Application
 # dotnet add package FluentValidation
-cd ..
+# cd ..
 ```
 
 ### 2.5 Infrastructure 層套件(EF Core + Redis + RabbitMQ)

@@ -74,23 +74,18 @@
 ## 3. 程式碼撰寫規則
 
 - **不要自己發明錯誤碼**,一律使用 `docs/specs/error-codes.md` 定義的 `errorCode`,如果需要新的錯誤碼,先提出來加進那份文件,再寫程式碼。
-- **不要繞過樂觀鎖機制**直接用 `UPDATE tickets SET available_quantity = available_quantity - 1`,必須照 `docs/specs/data-model.md` 2.2 節的 CAS SQL 寫法(帶 `WHERE version = :expected_version`).
+- **不要繞過樂觀鎖機制**直接用 `UPDATE tickets SET available_quantity = available_quantity - 1`,必須照 `docs/specs/data-model.md` 2.2 節的 CAS SQL 寫法(帶 `WHERE version = :expected_version`)。
 - **API 回應格式**必須符合 `docs/specs/api-spec.yaml` 定義的 schema,不要自行增減欄位。如果發現規格有缺漏,先回報,不要自行決定加欄位。
 - **命名慣例**:
   - C# 遵循標準 .NET 慣例(PascalCase for public members, camelCase for private fields with `_` 前綴)
   - 資料庫欄位用 snake_case(對應 `docs/specs/data-model.md` 的定義)
   - API JSON 欄位用 camelCase(對應 `docs/specs/api-spec.yaml` 的定義)
+- **輸入驗證用 ASP.NET Core 內建的 DataAnnotations**(如 `[Required]`、`[Range]`、`[MaxLength]`),不引入 FluentValidation——現階段驗證邏輯不夠複雜,不需要額外套件(如未來規則複雜到 DataAnnotations 不夠用,先補一份 ADR 討論再引入)。
 - **API 設計遵循 RESTful 規範**:
   - HTTP 方法用法:GET(查詢)/POST(建立)/PATCH(部分更新)/DELETE(刪除),不用 PUT(本專案不用完整覆蓋)
   - URL 路徑用複數名詞(`/orders`、`/tickets`),不用動詞
   - 回應格式須符合 `docs/specs/api-spec.yaml` 定義的 schema,含標準的 HTTP status code 和 `ErrorResponse` 結構
   - 所有 API 都必須有幂等性考慮:GET 永遠幂等;POST 可用 `Idempotency-Key` header 達到幂等;PATCH/DELETE 需檢查業務約束確保安全
-
----
-
-## 3.5 輸入驗證規則(強制)
-- Validator 類別放在 `TicketBooking.Application/Validators/` 資料夾,命名規則:`{DtoName}Validator.cs`。
-- 驗證失敗回傳 422 Unprocessable Entity,含 `errorCode` 與具體欄位錯誤(見 `docs/specs/api-spec.yaml` 的 ValidationErrorResponse schema)。
 
 ---
 

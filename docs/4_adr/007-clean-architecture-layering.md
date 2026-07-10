@@ -66,5 +66,5 @@ tests/
 - `AGENTS.md` 第 2 節提到的模組邊界規則也需要對應調整(改成「層與層之間的依賴方向規則」而非「模組之間不可互相引用 Entity」)。
 - 如果未來專案規模真的成長到需要按功能模組化(例如加入更多完全不相關的業務領域),屆時可以在現有的 `Application/Services` 底下用資料夾分組(如 `Services/Orders/`、`Services/Payments/`)先做邏輯分組,不急著在現階段拆專案。
 
-## 面試話術
+## 面試問題
 「部署層級我用 Modular Monolith(不拆微服務),但內部程式碼組織我選 Clean Architecture 水平分層,因為現階段的領域複雜度(3 個 Entity)還沒到需要模組隔離的規模,水平分層更能清楚展示 Dependency Inversion——這是兩個獨立的架構決策維度,不要混為一談。」

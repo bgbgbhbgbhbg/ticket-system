@@ -110,7 +110,7 @@ dotnet add package Microsoft.AspNetCore.Mvc.Testing
 cd ../..
 ```
 
-`Program.cs` 裡加上(取代舊版 `AddSwaggerGen()` / `UseSwaggerUI()`):
+`Program.cs` 裡加上(同時保留舊版 `AddSwaggerGen()` / `UseSwaggerUI()`):
 ```csharp
 // 在 Program.cs 的 builder 階段加入:
 builder.Services.AddOpenApi();
