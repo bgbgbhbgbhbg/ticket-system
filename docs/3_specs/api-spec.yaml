@@ -1,0 +1,370 @@
+openapi: 3.0.3
+info:
+  title: Ticket Booking System API
+  description: >
+    高併發票券預訂系統模擬平台 API 規格。
+    本規格是後端 Controller 實作與前端串接的唯一依據 (Source of Truth)。
+
+    版本策略(對應 adr/005-api-versioning-and-rbac.md):
+    所有 endpoint 統一走 URL path versioning(`/api/v1/...`),
+    使用者端(Auth/Tickets/Orders)與管理端(Admin)共用同一份版本號,
+    但透過 JWT role claim 區分權限,不另外拆 admin 專屬 API 版本。
+  version: 1.1.0
+
+servers:
+  - url: http://localhost:5000/api/v1
+    description: 本機開發環境
+
+tags:
+  - name: Auth
+  - name: Tickets
+  - name: Orders
+  - name: Admin
+  - name: Health
+
+paths:
+  # ============ Auth ============
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: 註冊帳號
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, displayName]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                displayName: { type: string, maxLength: 100 }
+      responses:
+        '201':
+          description: 註冊成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '409':
+          description: email 已存在
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: 登入取得 JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: 登入成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken: { type: string }
+                  expiresIn: { type: integer, example: 3600 }
+        '401':
+          description: 帳號或密碼錯誤
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: 取得目前登入使用者資訊
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '401':
+          description: 未登入或 token 失效
+
+  # ============ Tickets ============
+  /tickets:
+    get:
+      tags: [Tickets]
+      summary: 查詢票券列表(走 Redis cache-aside)
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TicketResponse' }
+
+  /tickets/{ticketId}:
+    get:
+      tags: [Tickets]
+      summary: 查詢票券詳情
+      parameters:
+        - in: path
+          name: ticketId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TicketResponse' }
+        '404':
+          description: 找不到票券
+
+  /tickets/{ticketId}/inventory:
+    get:
+      tags: [Tickets]
+      summary: 查詢即時剩餘庫存(高頻查詢,強制走 cache)
+      parameters:
+        - in: path
+          name: ticketId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticketId: { type: string, format: uuid }
+                  availableQuantity: { type: integer }
+                  cacheHit: { type: boolean, description: "用於壓測時觀察 cache hit rate" }
+
+  # ============ Orders(核心) ============
+  /orders:
+    post:
+      tags: [Orders]
+      summary: 建立訂單(搶票入口)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string, format: uuid }
+          description: 前端每次「送出」時產生一個新的 UUID,防止重複點擊造成重複訂單
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ticketId, quantity]
+              properties:
+                ticketId: { type: string, format: uuid }
+                quantity: { type: integer, minimum: 1, maximum: 10 }
+      responses:
+        '202':
+          description: 訂單已受理,進入非同步處理(狀態為 Pending)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderResponse' }
+        '409':
+          description: idempotency_key 重複(同一請求已處理過,回傳原本的訂單)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderResponse' }
+        '422':
+          description: 參數不合法(如 quantity 超過上限)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /orders/{orderId}:
+    get:
+      tags: [Orders]
+      summary: 查詢訂單狀態(前端 polling 用)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderResponse' }
+        '404':
+          description: 找不到訂單,或不屬於目前使用者
+
+  # ============ Admin(權限練習重點) ============
+  /admin/orders:
+    get:
+      tags: [Admin]
+      summary: 管理員檢視所有訂單清單(不限本人)
+      description: >
+        僅限 JWT role claim 內含 "Admin" 的使用者可存取。
+        一般使用者呼叫 GET /orders/{orderId} 只能看自己的訂單(見上方),
+        這支是管理端專用,用來練習「同一資源、不同角色不同可視範圍」的權限設計。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [Pending, Processing, Success, Failed]
+          description: 依狀態篩選,方便管理員找出卡住的訂單
+        - in: query
+          name: page
+          required: false
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: pageSize
+          required: false
+          schema: { type: integer, default: 20, maximum: 100 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/OrderResponse' }
+                  total: { type: integer }
+                  page: { type: integer }
+                  pageSize: { type: integer }
+        '403':
+          description: 非 Admin 角色,權限不足
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /admin/orders/{orderId}/status:
+    patch:
+      tags: [Admin]
+      summary: 管理員手動介入訂單狀態(例如卡在 Processing 太久需要人工判斷)
+      description: >
+        僅限 Admin 角色。轉換規則仍必須符合 domain-state-machine.md 定義的合法轉換表,
+        不可略過狀態機邏輯,API 層只是多一個「誰可以觸發」的權限門檻。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [toStatus, reason]
+              properties:
+                toStatus:
+                  type: string
+                  enum: [Success, Failed]
+                reason: { type: string, maxLength: 500 }
+      responses:
+        '200':
+          description: 轉換成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderResponse' }
+        '403':
+          description: 非 Admin 角色
+        '422':
+          description: 不符合合法狀態轉換規則(見 domain-state-machine.md)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  # ============ Health ============
+  /health:
+    get:
+      tags: [Health]
+      summary: 系統健康檢查(Redis / DB / MQ)
+      responses:
+        '200':
+          description: 全部正常
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthResponse' }
+        '503':
+          description: 至少一個元件異常
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthResponse' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        displayName: { type: string }
+        role:
+          type: string
+          enum: [User, Admin]
+          description: 對應 JWT 內的 role claim,決定能否呼叫 /admin/* endpoint
+        createdAt: { type: string, format: date-time }
+
+    TicketResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        eventName: { type: string }
+        eventStartAt: { type: string, format: date-time }
+        price: { type: number, format: decimal }
+        availableQuantity: { type: integer }
+
+    OrderResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        ticketId: { type: string, format: uuid }
+        quantity: { type: integer }
+        totalAmount: { type: number, format: decimal }
+        status:
+          type: string
+          enum: [Pending, Processing, Success, Failed]
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    HealthResponse:
+      type: object
+      properties:
+        status: { type: string, enum: [Healthy, Degraded, Unhealthy] }
+        components:
+          type: object
+          properties:
+            postgres: { type: string, enum: [Healthy, Unhealthy] }
+            redis: { type: string, enum: [Healthy, Unhealthy] }
+            rabbitmq: { type: string, enum: [Healthy, Unhealthy] }
+
+    ErrorResponse:
+      type: object
+      properties:
+        errorCode: { type: string, example: "INSUFFICIENT_INVENTORY" }
+        message: { type: string }
+        traceId: { type: string }
