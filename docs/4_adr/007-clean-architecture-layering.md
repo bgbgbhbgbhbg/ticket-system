@@ -27,7 +27,7 @@ TicketBooking.Api               # 依賴 Application + Infrastructure,Controller
 
 ## 與既有決策的關係(重要,避免文件矛盾)
 
-- `adr-004-modular-monolith-vs-microservice.md` 討論的是**部署單元**要不要拆微服務,結論不變(不拆)。這份 ADR 討論的是部署單元**內部怎麼組織資料夾**,是子決策,不衝突。
+- `adr-004-modular-monolith-vs-microservice.md` 討論的是**部署單元**要不要拆微服務,結論不變(不拆)。這份 ADR 討論的是部署單元**內部怎麼組織資料夾**,是子決策,不衝突。ADR 004 中之前畫的 Feature Module 垂直切法已由本 ADR 更新為 Clean Architecture 水平分層。
 - `adr-006-ddd-lite-vs-3tier.md` 討論的是 Entity **要不要帶行為**,這份決策完全不受影響——`Order.TransitionTo()` 這個設計原封不動,只是它現在放在 `TicketBooking.Domain/Entities/Order.cs`,而不是 `Modules/Orders/Domain/Order.cs`。
 
 ## 具體專案結構
