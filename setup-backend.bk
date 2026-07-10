@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -e  # 任何一行指令失敗就整個腳本停止,不會靜默繼續跑錯
+
+echo "=== 建立 backend 資料夾與 solution ==="
+mkdir -p backend && cd backend
+
+dotnet new sln -n TicketBooking
+
+echo "=== 建立四個分層專案(Clean Architecture) ==="
+dotnet new classlib -n TicketBooking.Domain
+dotnet new classlib -n TicketBooking.Application
+dotnet new classlib -n TicketBooking.Infrastructure
+dotnet new webapi -n TicketBooking.Api
+
+echo "=== 建立測試專案 ==="
+mkdir -p tests
+dotnet new xunit -n TicketBooking.UnitTests -o tests/TicketBooking.UnitTests
+dotnet new xunit -n TicketBooking.IntegrationTests -o tests/TicketBooking.IntegrationTests
+
+echo "=== 加進 solution ==="
+dotnet sln add TicketBooking.Domain TicketBooking.Application TicketBooking.Infrastructure TicketBooking.Api
+dotnet sln add tests/TicketBooking.UnitTests tests/TicketBooking.IntegrationTests
+
+echo "=== 設定專案間參考(依賴方向:Api → Infrastructure → Application → Domain) ==="
+dotnet add TicketBooking.Application reference TicketBooking.Domain
+dotnet add TicketBooking.Infrastructure reference TicketBooking.Application TicketBooking.Domain
+dotnet add TicketBooking.Api reference TicketBooking.Infrastructure TicketBooking.Application TicketBooking.Domain
+dotnet add tests/TicketBooking.UnitTests reference TicketBooking.Application TicketBooking.Domain
+dotnet add tests/TicketBooking.IntegrationTests reference TicketBooking.Infrastructure TicketBooking.Api
+
+echo "=== UnitTests: NSubstitute + Shouldly ==="
+(cd tests/TicketBooking.UnitTests && dotnet add package NSubstitute && dotnet add package Shouldly)
+
+echo "=== Application: FluentValidation ==="
+(cd TicketBooking.Application && dotnet add package FluentValidation)
+
+echo "=== Infrastructure: EF Core(pin 9.0.*)+ Redis + RabbitMQ ==="
+(cd TicketBooking.Infrastructure && \
+  dotnet add package Microsoft.EntityFrameworkCore.Tools --version 9.0.* && \
+  dotnet add package Microsoft.EntityFrameworkCore.Design --version 9.0.* && \
+  dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL --version 9.0.* && \
+  dotnet add package StackExchange.Redis && \
+  dotnet add package RabbitMQ.Client)
+
+echo "=== Api: JWT + OpenAPI + Scalar ==="
+(cd TicketBooking.Api && \
+  dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer && \
+  dotnet add package Microsoft.AspNetCore.OpenApi && \
+  dotnet add package Scalar.AspNetCore)
+
+echo "=== IntegrationTests: Testcontainers ==="
+(cd tests/TicketBooking.IntegrationTests && \
+  dotnet add package Testcontainers.PostgreSql && \
+  dotnet add package Testcontainers.RabbitMq && \
+  dotnet add package Microsoft.AspNetCore.Mvc.Testing)
+
+echo ""
+echo "✅ 全部完成!專案結構已建立在 backend/ 底下。"
+echo "下一步:去 TicketBooking.Api/Program.cs 加上 SETUP.md 第 2 節提供的 CORS / JWT / OpenAPI 設定。"
