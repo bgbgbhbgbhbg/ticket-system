@@ -280,6 +280,8 @@ frontend/.next/
 cd backend/TicketBooking.Api
 dotnet user-secrets init
 
+# secret密碼最後是! 要注意要改成單引號'
+
 # 設定 JWT 密鑰、連線字串等敏感資訊
 dotnet user-secrets set "Jwt:SecretKey" "your-super-secret-key-at-least-32-chars"
 dotnet user-secrets set "ConnectionStrings:Postgres" "Host=localhost;Database=ticket_booking;Username=ticket_admin;Password=your_local_dev_password"

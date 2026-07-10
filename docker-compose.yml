@@ -1,4 +1,3 @@
-version: '3.9'  # Docker Compose 檔案格式的版本號,3.9 是目前廣泛支援的穩定版本
 
 services:  # 底下定義所有要啟動的容器,每一個容器就是一個「service」
 
