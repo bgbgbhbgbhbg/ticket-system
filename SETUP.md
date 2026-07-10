@@ -214,16 +214,31 @@ EOF
 ### 啟動基礎設施
 ```bash
 # OrbStack 會自動處理 Apple Silicon 的相容性,指令跟一般 docker compose 一樣
+# 1. 啟動,-d 是背景執行(daemon),不會佔住整個終端機視窗
 docker compose up -d
 
 # 確認狀態
+# 2. 看狀態,重點看 STATUS 欄位要顯示 "Up" 或 "Up (healthy)"
 docker compose ps
 
+docker compose ps 執行後你會看到類似這樣的表格,三個服務都要是 Up 才算正常:
+NAME                 STATUS
+ticket-postgres      Up 10 seconds
+ticket-redis         Up 10 seconds
+ticket-rabbitmq      Up 10 seconds
+如果看到 Restarting 或 Exited,代表某個服務啟動失敗。
+
 # 看某個 service 的 log
+# 3. 看某個服務的詳細 log,找失敗原因(-f 是 follow,即時捲動,Ctrl+C 離開)
 docker compose logs -f postgres
+正常的話,Postgres 的 log 最後會停在類似 database system is ready to accept connections 這行。
 
 # 關閉(不會刪資料)
+# 4. 關閉(不會刪除資料,下次 up -d 資料還在)
 docker compose stop
+
+
+還有一個更直觀的驗證方式:你已經有 DBeaver,直接開新連線,Host 填 localhost、Port 5432、帳密照 .env 裡設的填,連得上就代表 Postgres 真的正常運作。RabbitMQ 也可以直接打開瀏覽器連 http://localhost:15672,用 .env 裡設的帳密登入,能看到 Management UI 介面就代表正常。
 
 # 完全清掉(含資料,重新開始用)
 docker compose down -v

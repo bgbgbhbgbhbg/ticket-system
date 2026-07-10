@@ -1,33 +1,40 @@
-version: '3.9'
+version: '3.9'  # Docker Compose 檔案格式的版本號,3.9 是目前廣泛支援的穩定版本
 
-services:
-  postgres:
-    image: postgres:16
-    container_name: ticket-postgres
-    environment:
-      POSTGRES_USER: ticket_admin
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ticket_booking
+services:  # 底下定義所有要啟動的容器,每一個容器就是一個「service」
+
+  postgres:  # 服務名稱,之後你的 C# 程式連線字串裡的 Host 如果寫 "postgres" 而不是 "localhost",
+             # 指的就是同一個 docker network 內用這個名字互相找到彼此(但本機開發你會用 localhost,見下方 ports)
+    image: postgres:16  # 從 Docker Hub 拉官方 Postgres image,16 是主版本號,固定版本避免哪天 latest 版本更新造成不相容
+    container_name: ticket-postgres  # 容器的顯示名稱,docker compose ps / docker compose logs 指令裡用這個名字
+    environment:  # 容器啟動時注入的環境變數,Postgres image 內建邏輯會讀這些變數來初始化資料庫
+      POSTGRES_USER: ticket_admin  # 建立資料庫時的管理者帳號,不是機密,可以直接寫死在這裡
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # 從 .env 讀取真正的密碼,絕對不要在這裡寫死明碼
+      POSTGRES_DB: ticket_booking  # 容器第一次啟動時會自動建立這個名稱的資料庫
     ports:
-      - "5432:5432"
+      - "5432:5432"  # 格式是 "主機port:容器內部port",代表你的 Mac 本機打 localhost:5432 會轉送進容器內部的 5432 port
+                      # (Postgres 預設就是監聽 5432,這裡兩邊剛好一樣,不代表一定要一樣)
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data  # 把容器內部存資料庫檔案的路徑,掛載到下面定義的 pgdata 這個 volume
+                                          # 這樣即使你之後 docker compose down(刪除容器),資料還留在 volume 裡不會消失
+                                          # 只有 docker compose down -v 那個 -v 才會連 volume 一起刪掉,資料才會真的消失
 
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine  # alpine 是精簡版 Linux base image,體積小、啟動快,對你 24GB 記憶體的機器比較友善
     container_name: ticket-redis
     ports:
-      - "6379:6379"
+      - "6379:6379"  # Redis 預設 port,本機用 localhost:6379 連線
 
   rabbitmq:
-    image: rabbitmq:3-management-alpine
+    image: rabbitmq:3-management-alpine  # 這個 image 標籤帶 "management",代表額外內建了網頁版管理介面(15672 port)
+                                          # 沒有 management 字樣的版本只有 MQ 功能,沒有網頁 UI
     container_name: ticket-rabbitmq
     ports:
-      - "5672:5672"     # AMQP
-      - "15672:15672"   # Management UI: http://localhost:15672
+      - "5672:5672"     # AMQP protocol port,你的 C# 程式(RabbitMQ.Client 套件)實際發送/消費訊息走這個 port
+      - "15672:15672"   # Management UI,瀏覽器打開 http://localhost:15672 用來看 queue 狀態、手動檢查訊息
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}      # 從 .env 讀取登入 Management UI 跟 AMQP 連線用的帳號
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}  # 同上,密碼從 .env 讀取,不寫死
 
-volumes:
-  pgdata:
+volumes:  # 這裡定義上面 postgres 服務用到的 named volume
+  pgdata:  # 只寫名字,不用額外設定,Docker 會自動幫你在本機建立一塊持久化儲存空間
+           # 位置由 Docker/OrbStack 自己管理,你不需要知道實際存在硬碟哪個資料夾
