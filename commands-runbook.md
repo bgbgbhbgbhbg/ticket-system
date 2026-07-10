@@ -319,7 +319,12 @@ docker compose ps
 # 終端 2:後端(自動 reload)
 cd backend/TicketBooking.Api
 dotnet watch run
-# 訪問: http://localhost:5000/scalar/v1
+或是
+dotnet run --project TicketBooking.Api
+# 訪問: 
+# http://localhost:5263/weatherforecast V
+# http://localhost:5263/openapi/v1.json V
+# http://localhost:5263/scalar/v1 V
 
 # 終端 3:前端
 cd frontend
