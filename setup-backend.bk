@@ -42,7 +42,7 @@ echo "=== Infrastructure: EF Core(pin 9.0.*)+ Redis + RabbitMQ ==="
 echo "=== Api: JWT + OpenAPI + Scalar ==="
 (cd TicketBooking.Api && \
   dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer --version 9.0.17 && \
-  dotnet add package Microsoft.AspNetCore.OpenApi && \
+  dotnet add package Microsoft.AspNetCore.OpenApi --version 9.0.17 && \
   dotnet add package Scalar.AspNetCore)
 
 echo "=== IntegrationTests: Testcontainers ==="
