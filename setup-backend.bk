@@ -31,20 +31,17 @@ dotnet add tests/TicketBooking.IntegrationTests reference TicketBooking.Infrastr
 echo "=== UnitTests: NSubstitute + Shouldly ==="
 (cd tests/TicketBooking.UnitTests && dotnet add package NSubstitute && dotnet add package Shouldly)
 
-echo "=== Application: FluentValidation ==="
-(cd TicketBooking.Application && dotnet add package FluentValidation)
-
 echo "=== Infrastructure: EF Core(pin 9.0.*)+ Redis + RabbitMQ ==="
 (cd TicketBooking.Infrastructure && \
-  dotnet add package Microsoft.EntityFrameworkCore.Tools --version 9.0.* && \
-  dotnet add package Microsoft.EntityFrameworkCore.Design --version 9.0.* && \
-  dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL --version 9.0.* && \
+  dotnet add package Microsoft.EntityFrameworkCore.Tools --version 9.0.2 && \
+  dotnet add package Microsoft.EntityFrameworkCore.Design --version 9.0.2 && \
+  dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL --version 9.0.2 && \
   dotnet add package StackExchange.Redis && \
   dotnet add package RabbitMQ.Client)
 
 echo "=== Api: JWT + OpenAPI + Scalar ==="
 (cd TicketBooking.Api && \
-  dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer && \
+  dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer --version 9.0.17 && \
   dotnet add package Microsoft.AspNetCore.OpenApi && \
   dotnet add package Scalar.AspNetCore)
 
@@ -52,7 +49,7 @@ echo "=== IntegrationTests: Testcontainers ==="
 (cd tests/TicketBooking.IntegrationTests && \
   dotnet add package Testcontainers.PostgreSql && \
   dotnet add package Testcontainers.RabbitMq && \
-  dotnet add package Microsoft.AspNetCore.Mvc.Testing)
+  dotnet add package Microsoft.AspNetCore.Mvc.Testing --version 9.0.17)
 
 echo ""
 echo "✅ 全部完成!專案結構已建立在 backend/ 底下。"
