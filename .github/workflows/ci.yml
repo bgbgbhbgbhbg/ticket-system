@@ -1,0 +1,30 @@
+name: CI
+
+# 觸發時機:推到 main、或針對 main 開 PR 時都跑
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout 程式碼
+        uses: actions/checkout@v4
+
+      - name: 安裝 .NET 9 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: 還原套件(NuGet restore)
+        run: dotnet restore backend/TicketBooking.sln
+
+      - name: Build(確保四個分層專案都編譯得過)
+        run: dotnet build backend/TicketBooking.sln --no-restore --configuration Release
+
+      - name: 執行 Unit Test(現階段先只跑這個,IntegrationTests 需要 Docker 服務,之後再加)
+        run: dotnet test backend/tests/TicketBooking.UnitTests --no-build --configuration Release
