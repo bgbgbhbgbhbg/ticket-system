@@ -27,7 +27,7 @@
 5. **照規格寫程式碼**
    遵守本文件(AGENTS.md)第 2~7 節的所有規則。
 
-6. **實作對應的測試**  
+6. **實作對應的測試**
    對照 test-plan.md 把測試案例勾選,不要漏掉任何環節。
 
 7. **完成後 git commit**
@@ -65,6 +65,7 @@
 
 - **依賴方向只能由外往內**:`TicketBooking.Api` → `TicketBooking.Infrastructure` → `TicketBooking.Application` → `TicketBooking.Domain`。`TicketBooking.Domain` **不可以**引用任何其他專案或第三方套件(EF Core、Redis client 等一律不能出現在 Domain 專案的 PackageReference)。
 - **EF Core 設定用 Fluent API,不用 Data Annotations**(見 `docs/specs/data-model.md` 第 0.1 節)。Entity 上不要加 `[Key]`、`[Required]`、`[Column]` 這類 attribute,每個 Entity 對應一個 `IEntityTypeConfiguration<T>` 類別放在 `TicketBooking.Infrastructure/Persistence/Configurations/`。
+- **Entity 的 `Create()` factory method 裡,`Id` 屬性絕對不要指定 `Guid.NewGuid()`**,要保持 CLR 預設值(即不指定,或明確寫 `default`)。原因:所有表的 PK 都用資料庫端的 `uuidv7()` 產生(見 `docs/specs/data-model.md` 第 0 節),如果在 C# 端先塞一個 `Guid.NewGuid()`,EF Core 會判斷這個值「已經被明確指定」,直接把它寫進 INSERT 語句,完全繞過資料庫的 `uuidv7()` default,等於白白配置了但沒有生效。
 - **Entity 要帶行為,不要寫成貧血模型**(見 `docs/adr/006-ddd-lite-vs-3tier.md`)。例如 `Order` Entity 應該有 `TransitionTo(OrderStatus to, string reason)` method,內部檢查 `docs/specs/domain-state-machine.md` 定義的合法轉換表,不合法就拋 `InvalidStatusTransitionException`。**不要**把這個檢查邏輯寫在 `TicketBooking.Application` 的 Service 裡。
 - **不要引入 Aggregate Root、Domain Event、CQRS、Event Sourcing** 這類重量級 DDD 模式,除非有對應的 ADR 明確要求。
 - `TicketBooking.Application` 只能透過 Interface(如 `IOrderRepository`、`ICacheService`、`IMessagePublisher`)呼叫 I/O,**不可以**直接 new 一個 EF Core DbContext 或 Redis client——實作永遠放在 `TicketBooking.Infrastructure`,由 `TicketBooking.Api` 的 DI 容器(`Program.cs`)組裝起來。

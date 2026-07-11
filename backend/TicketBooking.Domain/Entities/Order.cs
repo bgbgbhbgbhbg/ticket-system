@@ -28,7 +28,10 @@ public class Order
         var now = DateTime.UtcNow;
         return new Order
         {
-            Id = Guid.NewGuid(),   // 實際存入 DB 時會被 uuidv7() 的 column default 覆蓋,這裡給值只是讓記憶體中的物件先有 Id 可用
+            // 不指定 Id(保持 Guid 的 CLR 預設值 Guid.Empty),讓 EF Core 判斷這個值「尚未設定」,
+            // 才會真正呼叫資料庫的 DEFAULT uuidv7(),insert 後再把資料庫產生的值讀回這個物件。
+            // 千萬不要在這裡寫 Id = Guid.NewGuid(),那樣 EF Core 會直接採用這個值插入,
+            // uuidv7() 的 column default 完全不會被觸發。
             UserId = userId,
             TicketId = ticketId,
             Quantity = quantity,
