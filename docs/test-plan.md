@@ -4,7 +4,7 @@
 
 ---
 
-## 1. 單元測試(Unit Test)— 對應 `specs/domain-state-machine.md`
+## 1. 單元測試(Unit Test)— 對應 `docs/3_specs/domain-state-machine.md`
 
 | 測試案例 | 對應規則 | 狀態 |
 |---|---|---|
@@ -19,7 +19,7 @@
 
 ---
 
-## 2. 整合測試(Integration Test, Testcontainers)— 對應 `specs/data-model.md`
+## 2. 整合測試(Integration Test, Testcontainers)— 對應 `docs/3_specs/data-model.md`
 
 | 測試案例 | 對應規則 | 狀態 |
 |---|---|---|
@@ -30,7 +30,7 @@
 
 ---
 
-## 3. API 測試(對應 `specs/api-spec.yaml` + `specs/error-codes.md`)
+## 3. API 測試(對應 `docs/3_specs/api-spec.yaml` + `docs/3_specs/error-codes.md`)
 
 | 測試案例 | 對應 endpoint | 預期 errorCode | 狀態 |
 |---|---|---|---|
@@ -45,7 +45,7 @@
 
 ---
 
-## 4. 訊息佇列測試(對應 `specs/message-contracts.md`)
+## 4. 訊息佇列測試(對應 `docs/3_specs/message-contracts.md`)
 
 | 測試案例 | 狀態 |
 |---|---|
@@ -56,7 +56,7 @@
 
 ---
 
-## 5. 壓力測試(對應 `ops/load-testing-plan.md`)
+## 5. 壓力測試(對應 `docs/5_ops/load-testing-plan.md`)
 
 | 測試階段 | 通過門檻 | 狀態 |
 |---|---|---|

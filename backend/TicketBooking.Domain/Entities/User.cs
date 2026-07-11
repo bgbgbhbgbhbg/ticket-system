@@ -2,7 +2,7 @@ namespace TicketBooking.Domain.Entities;
 
 public class User
 {
-public Guid Id { get; private set; }
+    public Guid Id { get; private set; }
     public string Email { get; private set; } = null!;
     public string PasswordHash { get; private set; } = null!;
     public string DisplayName { get; private set; } = null!;

@@ -43,7 +43,7 @@ Exchange: order.exchange (type: direct)
 ```
 
 **欄位說明**:
-- `messageId`:每則訊息獨立的 UUID,用於 log 追蹤,**不是** idempotency key(idempotency 是在 API 層用 `Idempotency-Key` header 處理,見 `specs/api-spec.yaml`)
+- `messageId`:每則訊息獨立的 UUID,用於 log 追蹤,**不是** idempotency key(idempotency 是在 API 層用 `Idempotency-Key` header 處理,見 `docs/3_specs/api-spec.yaml`)
 - `occurredAt`:事件發生時間,不是訊息被消費的時間,兩者可能因為 queue 堆積而有落差,這個落差本身就是壓測時要觀察的指標之一
 
 ---
@@ -78,6 +78,6 @@ Exchange: order.exchange (type: direct)
 
 ## 5. 與其他文件的對應
 
-- 訊息消費後的狀態轉換規則 → `specs/domain-state-machine.md`
-- 樂觀鎖重試邏輯 → `specs/data-model.md` 第 2.2 節、`adr-003-oversell-prevention-strategy.md`
+- 訊息消費後的狀態轉換規則 → `docs/3_specs/domain-state-machine.md`
+- 樂觀鎖重試邏輯 → `docs/3_specs/data-model.md` 第 2.2 節、`adr-003-oversell-prevention-strategy.md`
 - 為什麼選 RabbitMQ 而非其他 MQ → `adr-001-why-rabbitmq-over-kafka.md`

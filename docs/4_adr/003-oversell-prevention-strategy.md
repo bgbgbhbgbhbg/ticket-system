@@ -29,7 +29,7 @@ Layer 3: DB 樂觀鎖(version 欄位 CAS,最終且唯一真正保證正確性的
 
 - **Redis**:效能優化,擋掉「庫存明顯是 0」的請求,減少無效流量進入後面的重量級流程,**不是正確性保證**
 - **RabbitMQ**:流量整形(traffic shaping),把突發流量轉成 worker 可控速度處理,降低 DB 瞬間衝突機率,**不是正確性保證**
-- **PostgreSQL 樂觀鎖**:唯一的正確性保證,見 `specs/data-model.md` 第 2.2 節的 CAS SQL 語法與 `specs/domain-state-machine.md` 的重試邏輯
+- **PostgreSQL 樂觀鎖**:唯一的正確性保證,見 `docs/3_specs/data-model.md` 第 2.2 節的 CAS SQL 語法與 `docs/3_specs/domain-state-machine.md` 的重試邏輯
 
 ## 後果
 - 系統複雜度提高(三層都要維護、都要測試),但正確性風險是搶票系統的第一優先順序,值得這個複雜度成本。

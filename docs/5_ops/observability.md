@@ -4,7 +4,7 @@
 
 ---
 
-## 1. Health Check(對應 `specs/api-spec.yaml` 的 `/health`)
+## 1. Health Check(對應 `docs/3_specs/api-spec.yaml` 的 `/health`)
 
 ```
 GET /health
@@ -58,13 +58,13 @@ GET /health
 | `cache_hit_total` / `cache_miss_total` | Counter | 對應 `cache-strategy.md` 的 cache hit rate 觀察 |
 | `optimistic_lock_retry_total` | Counter | 樂觀鎖衝突次數,異常升高代表搶票競爭激烈或系統瓶頸 |
 
-這些 metrics 搭配 Grafana 可以做出一個簡單的 dashboard,壓測時(`ops/load-testing-plan.md`)一邊跑 k6 一邊看這個 dashboard,是很直觀的呈現方式。**這部分屬於加分項,不是本專案的必要功能**,環境架好、核心流程跑通後有餘力再做。
+這些 metrics 搭配 Grafana 可以做出一個簡單的 dashboard,壓測時(`docs/5_ops/load-testing-plan.md`)一邊跑 k6 一邊看這個 dashboard,是很直觀的呈現方式。**這部分屬於加分項,不是本專案的必要功能**,環境架好、核心流程跑通後有餘力再做。
 
 ---
 
 ## 4. 與其他文件的對應
 
-- Health check 的降級邏輯 → `specs/cache-strategy.md` 第 5 節
-- Log 需要記錄的 reason 值 → `specs/error-codes.md`
-- traceId 格式 → `specs/error-codes.md` 第 4 節(W3C Trace Context)
-- Metrics 觀察重點與壓測的搭配 → `ops/load-testing-plan.md` 第 5 節
+- Health check 的降級邏輯 → `docs/3_specs/cache-strategy.md` 第 5 節
+- Log 需要記錄的 reason 值 → `docs/3_specs/error-codes.md`
+- traceId 格式 → `docs/3_specs/error-codes.md` 第 4 節(W3C Trace Context)
+- Metrics 觀察重點與壓測的搭配 → `docs/5_ops/load-testing-plan.md` 第 5 節

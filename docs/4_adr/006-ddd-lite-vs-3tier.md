@@ -4,7 +4,7 @@
 已採用(DDD-Lite)
 
 ## 背景
-在 Modular Monolith(`adr/004`)的架構下,每個模組(尤其 Orders)內部要用什麼分層風格:純 3-Tier(Controller/Service/Repository,Entity 只是資料袋子),還是導入 DDD 戰術模式(Entity 帶行為)。
+在 Modular Monolith(`docs/4_adr/004`)的架構下,每個模組(尤其 Orders)內部要用什麼分層風格:純 3-Tier(Controller/Service/Repository,Entity 只是資料袋子),還是導入 DDD 戰術模式(Entity 帶行為)。
 
 ## 決策
 採用 **DDD-Lite**:Entity 封裝行為與不變條件(invariant),但不引入完整 DDD 的重量級模式(Aggregate Root、Domain Event、CQRS、Event Sourcing)。

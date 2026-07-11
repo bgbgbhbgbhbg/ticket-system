@@ -29,7 +29,7 @@ Acceptance Criteria（驗收條件）
 - 註冊帳號 / 登入(JWT Authentication)
 - 取得使用者資訊(含角色 `User` / `Admin`)
 
-規格詳見:`specs/api-spec.yaml`(Auth 區塊)、`specs/data-model.md`(users 表)
+規格詳見:`docs/3_specs/api-spec.yaml`(Auth 區塊)、`docs/3_specs/data-model.md`(users 表)
 
 ---
 
@@ -37,7 +37,7 @@ Acceptance Criteria（驗收條件）
 - 查詢票券列表 / 詳情
 - 查詢即時剩餘庫存(走 Redis cache-aside)
 
-規格詳見:`specs/api-spec.yaml`(Tickets 區塊)、`specs/cache-strategy.md`
+規格詳見:`docs/3_specs/api-spec.yaml`(Tickets 區塊)、`docs/3_specs/cache-strategy.md`
 
 ---
 
@@ -46,7 +46,7 @@ Acceptance Criteria（驗收條件）
 - 查詢訂單狀態
 - 訂單狀態流轉:`Pending → Processing → Success / Failed`
 
-規格詳見:`specs/api-spec.yaml`(Orders 區塊)、`specs/domain-state-machine.md`
+規格詳見:`docs/3_specs/api-spec.yaml`(Orders 區塊)、`docs/3_specs/domain-state-machine.md`
 
 ---
 
@@ -55,7 +55,7 @@ Acceptance Criteria（驗收條件）
 - 管理員可手動介入卡住的訂單狀態(仍受狀態機合法轉換規則限制)
 - 與一般使用者 API 完全區隔的 endpoint(`/admin/*`),而非同一 endpoint 依角色回傳不同內容
 
-規格詳見:`specs/api-spec.yaml`(Admin 區塊)、`adr/005-api-versioning-and-rbac.md`
+規格詳見:`docs/3_specs/api-spec.yaml`(Admin 區塊)、`docs/4_adr/005-api-versioning-and-rbac.md`
 
 **練習目的**:區分「API 版本號」與「角色權限」兩個維度——版本號解決契約相容性問題,角色權限解決存取控制問題,兩者不應混用同一套機制。
 
@@ -69,7 +69,7 @@ Acceptance Criteria（驗收條件）
 2. RabbitMQ 序列化(流量整形,非正確性保證)
 3. PostgreSQL 樂觀鎖(`version` 欄位 CAS,唯一正確性保證)
 
-規格詳見:`adr/003-oversell-prevention-strategy.md`、`specs/data-model.md`(2.2 節)
+規格詳見:`docs/4_adr/003-oversell-prevention-strategy.md`、`docs/3_specs/data-model.md`(2.2 節)
 
 ---
 
@@ -78,7 +78,7 @@ Acceptance Criteria（驗收條件）
 - 結構化 log,以 `traceId` 貫穿 API → MQ → Worker 全流程
 - (選配)Prometheus metrics,觀察 cache hit rate、樂觀鎖衝突率等
 
-規格詳見:`ops/observability.md`
+規格詳見:`docs/5_ops/observability.md`
 
 ---
 
@@ -106,7 +106,7 @@ Acceptance Criteria（驗收條件）
 | Breakpoint | 1500~2000 | 本機實測,測到系統明顯降級即停止 |
 | 更高並發(如萬人等級) | — | 僅做理論分析與推估,不在本機實測,避免測出的數字反映的是筆電資源限制而非架構真實瓶頸 |
 
-規格詳見:`ops/load-testing-plan.md`
+規格詳見:`docs/5_ops/load-testing-plan.md`
 
 ---
 
@@ -142,7 +142,7 @@ Acceptance Criteria（驗收條件）
 - Seat locking mechanism
 - Distributed tracing(OpenTelemetry)
 - Kubernetes deployment
-- `order_status_logs` 加入 `operated_by` 欄位,記錄 Admin 操作稽核軌跡(見 `adr/005` 後果章節)
+- `order_status_logs` 加入 `operated_by` 欄位,記錄 Admin 操作稽核軌跡(見 `docs/4_adr/005` 後果章節)
 
 ---
 

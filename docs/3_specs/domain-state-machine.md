@@ -94,6 +94,6 @@ stateDiagram-v2
 
 ## 7. 下一步
 
-1. `specs/api-spec.yaml` — 定義 `POST /orders`、`GET /orders/{id}` 等 endpoint,回應內容要能反映這裡的狀態
-2. `specs/message-contracts.md` — 定義 RabbitMQ 訊息的 payload 格式與 dead-letter queue 設計
-3. `ops/load-testing-plan.md` — 依照你的硬體條件(M5 / 24GB)調整過的壓測計畫
+1. `docs/3_specs/api-spec.yaml` — 定義 `POST /orders`、`GET /orders/{id}` 等 endpoint,回應內容要能反映這裡的狀態
+2. `docs/3_specs/message-contracts.md` — 定義 RabbitMQ 訊息的 payload 格式與 dead-letter queue 設計
+3. `docs/5_ops/load-testing-plan.md` — 依照你的硬體條件(M5 / 24GB)調整過的壓測計畫

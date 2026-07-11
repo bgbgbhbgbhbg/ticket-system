@@ -120,7 +120,7 @@ erDiagram
 **索引**:
 - `UNIQUE INDEX idx_users_email ON users(email)`
 
-> `role` 欄位是後續加入的(對應 `adr/005-api-versioning-and-rbac.md`),Migration 時用 `ALTER TABLE users ADD COLUMN role varchar(20) NOT NULL DEFAULT 'User'`,不影響既有資料。
+> `role` 欄位是後續加入的(對應 `docs/4_adr/005-api-versioning-and-rbac.md`),Migration 時用 `ALTER TABLE users ADD COLUMN role varchar(20) NOT NULL DEFAULT 'User'`,不影響既有資料。
 
 ---
 
@@ -215,6 +215,6 @@ WHERE id = :ticket_id
 
 這份 data model 定案後,建議接著做:
 
-1. `specs/domain-state-machine.md` — 把上面提到的 status 轉換規則細化(哪些轉換合法、誰觸發)
-2. `specs/api-spec.yaml` — 用 OpenAPI 定義 `POST /orders` 等 endpoint,request/response 直接對應這裡的欄位
+1. `docs/3_specs/domain-state-machine.md` — 把上面提到的 status 轉換規則細化(哪些轉換合法、誰觸發)
+2. `docs/3_specs/api-spec.yaml` — 用 OpenAPI 定義 `POST /orders` 等 endpoint,request/response 直接對應這裡的欄位
 3. EF Core Entity + Migration — 這時候才真正寫 code,並且 code 要能回頭對照這份文件檢查有沒有漏欄位

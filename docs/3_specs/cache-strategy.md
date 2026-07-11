@@ -65,10 +65,10 @@ DEL ticket:{ticketId}:inventory
 - 讀取路徑:catch 例外後直接查 DB,回傳結果,**不讓 Redis 故障影響 API 可用性**(只是延遲變高)
 - 寫入路徑(DEL):catch 例外後只記 log,不阻擋訂單狀態轉換的主流程(cache 只是效能優化,不應該因為它掛掉導致核心業務邏輯失敗)
 
-對應 `/health` endpoint(見 `specs/api-spec.yaml`):Redis 若異常回報為 `Degraded` 而非 `Unhealthy`,因為系統仍可運作只是變慢。
+對應 `/health` endpoint(見 `docs/3_specs/api-spec.yaml`):Redis 若異常回報為 `Degraded` 而非 `Unhealthy`,因為系統仍可運作只是變慢。
 
 ---
 
 ## 6. 與 k6 壓測的對應
 
-`ops/load-testing-plan.md` 裡 `/tickets/{ticketId}/inventory` 回應的 `cacheHit` 欄位,就是用來在壓測時觀察 cache hit rate 是否符合預期(高並發下 hit rate 應該很高,如果偏低代表 TTL 或 invalidate 邏輯可能有問題)。
+`docs/5_ops/load-testing-plan.md` 裡 `/tickets/{ticketId}/inventory` 回應的 `cacheHit` 欄位,就是用來在壓測時觀察 cache hit rate 是否符合預期(高並發下 hit rate 應該很高,如果偏低代表 TTL 或 invalidate 邏輯可能有問題)。
