@@ -1,3 +1,5 @@
+namespace TicketBooking.Domain.Entities;
+
 public class Ticket
 {
     public Guid Id { get; private set; }
