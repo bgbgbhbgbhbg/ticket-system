@@ -179,7 +179,7 @@ WHERE id = :ticket_id
 **status 允許值**(對應狀態機):
 `Pending` → `Processing` → `Success` | `Failed`
 
-**與 C# 程式碼的對應**:資料庫層存的是文字(`varchar(20)`),對應到 `TicketBooking.Domain.Enums.OrderStatus` 這個 enum,EF Core Configuration 用 `.HasConversion<string>()` 做轉換(見 `adr-006-ddd-lite-vs-3tier.md`)。enum 是 C# 型別安全層的決定,不影響資料庫實際儲存的型別。
+**與 C# 程式碼的對應**:資料庫層存的是文字(`varchar(20)`),對應到 `TicketBooking.Domain.Enums.OrderStatus` 這個 enum,EF Core Configuration 用 `.HasConversion<string>()` 做轉換(見 `docs/4_adr/006-ddd-lite-vs-3tier.md`)。enum 是 C# 型別安全層的決定,不影響資料庫實際儲存的型別。
 
 ---
 
