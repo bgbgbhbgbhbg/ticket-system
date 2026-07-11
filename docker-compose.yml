@@ -1,9 +1,10 @@
+version: '3.9'  # Docker Compose 檔案格式的版本號,3.9 是目前廣泛支援的穩定版本
 
 services:  # 底下定義所有要啟動的容器,每一個容器就是一個「service」
 
   postgres:  # 服務名稱,之後你的 C# 程式連線字串裡的 Host 如果寫 "postgres" 而不是 "localhost",
              # 指的就是同一個 docker network 內用這個名字互相找到彼此(但本機開發你會用 localhost,見下方 ports)
-    image: postgres:16  # 從 Docker Hub 拉官方 Postgres image,16 是主版本號,固定版本避免哪天 latest 版本更新造成不相容
+    image: postgres:18  # 必須是 18 以上,uuidv7() 是 PostgreSQL 18 才新增的原生函式,16/17 都沒有這個函式
     container_name: ticket-postgres  # 容器的顯示名稱,docker compose ps / docker compose logs 指令裡用這個名字
     environment:  # 容器啟動時注入的環境變數,Postgres image 內建邏輯會讀這些變數來初始化資料庫
       POSTGRES_USER: ticket_admin  # 建立資料庫時的管理者帳號,不是機密,可以直接寫死在這裡
