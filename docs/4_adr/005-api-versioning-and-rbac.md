@@ -30,7 +30,7 @@
 ## 決策 B:角色權限採用 JWT Role Claim + Endpoint 層級檢查
 
 ## 做法
-1. `users.role` 欄位(`User` | `Admin`,見 `specs/data-model.md`)在登入時寫入 JWT payload 的 role claim。
+1. `users.role` 欄位(`User` | `Admin`,見 `docs/3_specs/data-model.md`)在登入時寫入 JWT payload 的 role claim。
 2. 後端用 ASP.NET Core 的 `[Authorize(Roles = "Admin")]` attribute 標記 `/admin/*` endpoint,框架層級直接擋,不需要每個 controller method 手動寫 if 判斷。
 3. **不做「同一個 endpoint、依角色回傳不同欄位」這種設計**——刻意讓 User 端與 Admin 端是完全不同的 endpoint(`/orders/{id}` vs `/admin/orders`),理由:
    - 職責單一:一個 endpoint 只服務一種角色的需求,回應 schema 固定,不會有「這個欄位只有 Admin 看得到」這種條件式邏輯散落在 code 裡

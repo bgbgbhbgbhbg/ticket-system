@@ -21,7 +21,7 @@ Cache-Aside 的優勢在本專案場景下更合適:
 2. **實作簡單**:不需要保證「DB 寫入」與「cache 寫入」的雙寫一致性,只要寫入 DB 成功後 invalidate 對應 key 即可,下一次讀取自然會重新載入最新資料。
 3. **容錯性**:即使 Redis 整個掛掉,系統仍可退化成直接查 DB(效能下降但不會整個系統掛掉),Write-Through 若雙寫失敗需要更複雜的補償機制。
 
-## 具體規則(對應 `specs/cache-strategy.md`)
+## 具體規則(對應 `docs/3_specs/cache-strategy.md`)
 - Key 格式:`ticket:{ticketId}`,`ticket:{ticketId}:inventory`
 - TTL:詳情類資料 5 分鐘;`available_quantity` 這種高頻異動資料改用**主動 invalidate**(訂單處理完成後立即刪除該 key),不依賴 TTL 自然過期,避免搶票尖峰時讀到過期庫存誤導使用者。
 

@@ -17,16 +17,16 @@
 
 | 順序 | 分支名稱 | 做什麼 | 為什麼是這個順序 | 涵蓋規格 | 狀態 |
 |---|---|---|---|---|---|
-| 1 | `feature/tickets-read` | `TicketRepository` + `TicketService` + `TicketsController`，實作 `GET /tickets`、`GET /tickets/{id}`（**不加 Redis、不需要 JWT**） | 全系統複雜度最低的功能，先證明 DB → EF Core → Controller → JSON 回應這條路完全通了 | `specs/api-spec.yaml` (Tickets 區塊)、`specs/data-model.md` (tickets 表) | ⬜ |
+| 1 | `feature/tickets-read` | `TicketRepository` + `TicketService` + `TicketsController`，實作 `GET /tickets`、`GET /tickets/{id}`（**不加 Redis、不需要 JWT**） | 全系統複雜度最低的功能，先證明 DB → EF Core → Controller → JSON 回應這條路完全通了 | `docs/3_specs/api-spec.yaml` (Tickets 區塊)、`docs/3_specs/data-model.md` (tickets 表) | ⬜ |
 | 2 | `feature/tickets-unit-test` | 幫 `TicketService` 補 Unit Test（NSubstitute mock `ITicketRepository`） | 第一次真的把 CI 跑起來看綠燈，建立「寫完功能就補測試」的習慣，分開一個小分支練習 PR 流程 | `test-plan.md` 第 1 節（雖然該節主要針對 Order，但此處練習測試框架設置） | ⬜ |
-| 3 | `feature/auth` | 註冊 / 登入 / JWT 簽發，`AuthController` + `AuthService` + `IPasswordHasher` | Orders 需要 JWT 才能建立訂單，必須先做完認證；Admin 功能也依賴 role claim | `specs/api-spec.yaml` (Auth 區塊)、`specs/data-model.md` (users 表)、`adr/005` (RBAC) | ⬜ |
-| 4 | `feature/orders-create` | `POST /orders`（建立訂單，狀態固定 `Pending`）+ idempotency key 檢查 + 發布訊息到 RabbitMQ + `GET /orders/{id}` 查詢單筆訂單 | 這一步先讓「建立訂單」這個動作能跑，還不涉及樂觀鎖與庫存扣減，消息送到 MQ 即完成 | `specs/api-spec.yaml` (Orders 區塊)、`specs/message-contracts.md`、`specs/data-model.md` (orders 表) | ⬜ |
-| 5 | `feature/orders-worker` | `BackgroundService` 消費訊息、樂觀鎖 CAS 扣庫存、`Order.TransitionTo()`、寫 `OrderStatusLog`、技術失敗 nack / 業務失敗 ack / DLQ 設定 | 全系統最核心也最複雜的部分，前面地基都穩了才處理這塊 | `specs/domain-state-machine.md`、`specs/message-contracts.md`、`specs/data-model.md` (tickets.version、order_status_logs)、`adr/003` | ⬜ |
+| 3 | `feature/auth` | 註冊 / 登入 / JWT 簽發，`AuthController` + `AuthService` + `IPasswordHasher` | Orders 需要 JWT 才能建立訂單，必須先做完認證；Admin 功能也依賴 role claim | `docs/3_specs/api-spec.yaml` (Auth 區塊)、`docs/3_specs/data-model.md` (users 表)、`docs/4_adr/005` (RBAC) | ⬜ |
+| 4 | `feature/orders-create` | `POST /orders`（建立訂單，狀態固定 `Pending`）+ idempotency key 檢查 + 發布訊息到 RabbitMQ + `GET /orders/{id}` 查詢單筆訂單 | 這一步先讓「建立訂單」這個動作能跑，還不涉及樂觀鎖與庫存扣減，消息送到 MQ 即完成 | `docs/3_specs/api-spec.yaml` (Orders 區塊)、`docs/3_specs/message-contracts.md`、`docs/3_specs/data-model.md` (orders 表) | ⬜ |
+| 5 | `feature/orders-worker` | `BackgroundService` 消費訊息、樂觀鎖 CAS 扣庫存、`Order.TransitionTo()`、寫 `OrderStatusLog`、技術失敗 nack / 業務失敗 ack / DLQ 設定 | 全系統最核心也最複雜的部分，前面地基都穩了才處理這塊 | `docs/3_specs/domain-state-machine.md`、`docs/3_specs/message-contracts.md`、`docs/3_specs/data-model.md` (tickets.version、order_status_logs)、`docs/4_adr/003` | ⬜ |
 | 6 | `feature/orders-integration-test` | Testcontainers 驗證「兩個並發請求搶同一張票，只有一個成功」+ `available_quantity` 不會扣成負數 + idempotency key 測試 | 這是整個專案最重要的一個測試案例，值得獨立一個分支專心處理，不能只靠 mock | `test-plan.md` 第 2 節 | ⬜ |
-| 7 | `feature/admin-rbac` | `AdminOrdersController`（`GET /admin/orders`、`PATCH /admin/orders/{id}/status`）+ `[Authorize(Roles = "Admin")]` + 權限測試 | 認證跟訂單都做完後，RBAC 才有東西可以保護 | `specs/api-spec.yaml` (Admin 區塊)、`adr/005` (API versioning vs RBAC)、`test-plan.md` 第 3 節 (Admin 權限測試) | ⬜ |
-| 8 | `feature/redis-cache` | 幫 `GET /tickets/{id}/inventory` 加上 Cache-Aside，訂單處理完 invalidate，Redis 故障降級邏輯 | 這時候核心流程都通了，加 Redis 是效能優化，錦上添花 | `specs/cache-strategy.md`、`adr/002` (cache-aside vs write-through) | ⬜ |
-| 9 | `feature/load-testing` | k6 腳本（baseline/normal/stress/breakpoint），對照 `load-testing-plan.md` 分級跑，記錄 cache hit rate、樂觀鎖衝突率 | 系統功能齊全後才適合做壓測，太早測沒有意義 | `ops/load-testing-plan.md`、`test-plan.md` 第 5 節 | ⬜ |
-| 10 | `feature/observability` | `/health` endpoint、結構化 log（`traceId` 貫穿 API → MQ → Worker）、log level 設定 | 選配，有餘力再做，但對面試展示很加分 | `specs/api-spec.yaml` (Health 區塊)、`ops/observability.md` | ⬜ |
+| 7 | `feature/admin-rbac` | `AdminOrdersController`（`GET /admin/orders`、`PATCH /admin/orders/{id}/status`）+ `[Authorize(Roles = "Admin")]` + 權限測試 | 認證跟訂單都做完後，RBAC 才有東西可以保護 | `docs/3_specs/api-spec.yaml` (Admin 區塊)、`docs/4_adr/005` (API versioning vs RBAC)、`test-plan.md` 第 3 節 (Admin 權限測試) | ⬜ |
+| 8 | `feature/redis-cache` | 幫 `GET /tickets/{id}/inventory` 加上 Cache-Aside，訂單處理完 invalidate，Redis 故障降級邏輯 | 這時候核心流程都通了，加 Redis 是效能優化，錦上添花 | `docs/3_specs/cache-strategy.md`、`docs/4_adr/002` (cache-aside vs write-through) | ⬜ |
+| 9 | `feature/load-testing` | k6 腳本（baseline/normal/stress/breakpoint），對照 `load-testing-plan.md` 分級跑，記錄 cache hit rate、樂觀鎖衝突率 | 系統功能齊全後才適合做壓測，太早測沒有意義 | `docs/5_ops/load-testing-plan.md`、`test-plan.md` 第 5 節 | ⬜ |
+| 10 | `feature/observability` | `/health` endpoint、結構化 log（`traceId` 貫穿 API → MQ → Worker）、log level 設定 | 選配，有餘力再做，但對面試展示很加分 | `docs/3_specs/api-spec.yaml` (Health 區塊)、`docs/5_ops/observability.md` | ⬜ |
 
 ---
 
@@ -46,7 +46,7 @@
 ### 2.1 潛在遺漏項目（經審視後判定不需要）
 
 1. **`GET /orders` 使用者查詢自己的訂單列表**
-   - **現況**：`specs/api-spec.yaml` 只有 `GET /orders/{id}`（查詢單筆訂單），沒有 `GET /orders`（列表）
+   - **現況**：`docs/3_specs/api-spec.yaml` 只有 `GET /orders/{id}`（查詢單筆訂單），沒有 `GET /orders`（列表）
    - **判定**：**不算遺漏，刻意簡化**
    - **理由**：搶票場景下，使用者通常只需要：
      1. 下單後取得訂單 ID（POST 回傳）
@@ -144,7 +144,7 @@
 | EF Core migration 出錯，無法建立表格 | Task 1, 3, 4 | 優先除錯 DB 連線，參考 `docs/docker問題除錯.md` |
 | RabbitMQ 本機連線不穩 | Task 4, 5 | 檢查 `docker-compose.yml` 的 port mapping 與 health check |
 | Testcontainers 在 M5 Mac 上跑不動 | Task 6 | 改用真實 Docker container 手動啟動，或用 EF Core In-Memory DB 降級測試（但會失去真實 SQL 驗證） |
-| 樂觀鎖邏輯寫錯，整合測試失敗 | Task 5, 6 | 回到 `specs/data-model.md` 2.2 節對照 CAS SQL，加 debug log 觀察 version 欄位 |
+| 樂觀鎖邏輯寫錯，整合測試失敗 | Task 5, 6 | 回到 `docs/3_specs/data-model.md` 2.2 節對照 CAS SQL，加 debug log 觀察 version 欄位 |
 | k6 壓測本機資源不足（CPU/Memory 炸掉） | Task 9 | 降低 `load-testing-plan.md` 的並發數，以「找出第一個瓶頸」為目標，不追求不切實際的高並發數字 |
 
 ---

@@ -1,6 +1,6 @@
 # Error Codes Specification
 
-> 統一定義 API 回傳的 `errorCode`(對應 `specs/api-spec.yaml` 的 `ErrorResponse` schema)。前端可依 `errorCode` 做對應的 UI 文案顯示,不要用 `message` 文字內容做判斷(message 純粹給人看,可能會改文案)。
+> 統一定義 API 回傳的 `errorCode`(對應 `docs/3_specs/api-spec.yaml` 的 `ErrorResponse` schema)。前端可依 `errorCode` 做對應的 UI 文案顯示,不要用 `message` 文字內容做判斷(message 純粹給人看,可能會改文案)。
 
 ---
 
@@ -35,7 +35,7 @@
 | `ORDER_NOT_FOUND` | 404 | 查無此訂單,或訂單不屬於目前使用者 |
 | `ORDER_QUANTITY_EXCEEDS_LIMIT` | 422 | 單筆訂單購買數量超過上限(見 api-spec.yaml,目前上限 10) |
 | `ORDER_DUPLICATE_IDEMPOTENCY_KEY` | 409 | 重複的 `Idempotency-Key`,回傳原本已建立的訂單 |
-| `ORDER_INSUFFICIENT_INVENTORY` | — (非同步,不會是 HTTP response,而是訂單最終狀態 Failed 的 reason) | 對應 `order_status_logs.reason`,見 `specs/domain-state-machine.md` |
+| `ORDER_INSUFFICIENT_INVENTORY` | — (非同步,不會是 HTTP response,而是訂單最終狀態 Failed 的 reason) | 對應 `order_status_logs.reason`,見 `docs/3_specs/domain-state-machine.md` |
 | `ORDER_OPTIMISTIC_LOCK_RETRY_EXHAUSTED` | — (同上,非同步 reason) | 樂觀鎖重試達上限 |
 | `ORDER_INVALID_STATUS_TRANSITION` | 422 | Admin 嘗試做不合法的狀態轉換(見 domain-state-machine.md 的不允許轉換列表) |
 

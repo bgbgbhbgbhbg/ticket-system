@@ -56,7 +56,7 @@ PostgreSQL (Source of Truth) ── Redis (Cache) ── RabbitMQ (Async Queue)
 - 儲存:Users(含 role)、Tickets(含 version 樂觀鎖欄位)、Orders、Order Status Logs
 - 使用 EF Core ORM
 
-完整欄位定義:`specs/data-model.md`
+完整欄位定義:`docs/3_specs/data-model.md`
 
 ---
 
@@ -72,7 +72,7 @@ API → Redis → Miss → DB → Update Redis
 
 **角色定位**:Redis 只負責效能優化,**不是資料正確性的來源**。故障時系統降級為直接查 DB,`/health` 回報 Degraded 而非 Unhealthy。
 
-完整 key 設計、TTL、失效規則:`specs/cache-strategy.md`
+完整 key 設計、TTL、失效規則:`docs/3_specs/cache-strategy.md`
 
 ---
 
@@ -94,14 +94,14 @@ BackgroundService 消費
 
 **角色定位**:MQ 負責流量整形,**不是正確性保證**,真正防超賣靠下一層的 DB 樂觀鎖。
 
-完整 Exchange/Queue 設計、Payload 格式:`specs/message-contracts.md`
+完整 Exchange/Queue 設計、Payload 格式:`docs/3_specs/message-contracts.md`
 
 ---
 
 ### 3.5 BackgroundService
 
 - .NET 內建 worker,消費 RabbitMQ 訊息
-- 執行訂單狀態轉換(依 `specs/domain-state-machine.md` 定義的合法轉換規則)
+- 執行訂單狀態轉換(依 `docs/3_specs/domain-state-machine.md` 定義的合法轉換規則)
 - 執行庫存扣減的樂觀鎖 CAS 邏輯與重試(上限 3 次)
 - 完成後主動 invalidate 對應的 Redis 庫存 key
 
@@ -166,10 +166,10 @@ docker compose up -d
 
 | 測試類型 | 工具 | 對應規格 |
 |---|---|---|
-| Unit Test | xUnit | `specs/domain-state-machine.md` |
-| Integration Test | Testcontainers(PostgreSQL/RabbitMQ) | `specs/data-model.md` |
-| API Test | xUnit + `Microsoft.AspNetCore.Mvc.Testing` | `specs/api-spec.yaml` + `specs/error-codes.md` |
-| Load Test | k6 | `ops/load-testing-plan.md` |
+| Unit Test | xUnit | `docs/3_specs/domain-state-machine.md` |
+| Integration Test | Testcontainers(PostgreSQL/RabbitMQ) | `docs/3_specs/data-model.md` |
+| API Test | xUnit + `Microsoft.AspNetCore.Mvc.Testing` | `docs/3_specs/api-spec.yaml` + `docs/3_specs/error-codes.md` |
+| Load Test | k6 | `docs/5_ops/load-testing-plan.md` |
 
 測試案例與規格的對照追蹤表:`test-plan.md`
 
@@ -181,7 +181,7 @@ docker compose up -d
 - 結構化 log,`traceId` 貫穿 API → MQ → Worker
 - (選配)Prometheus metrics:cache hit rate、樂觀鎖衝突率、訂單處理耗時分布
 
-完整設計:`ops/observability.md`
+完整設計:`docs/5_ops/observability.md`
 
 ---
 
@@ -194,7 +194,7 @@ docker compose up -d
 | RabbitMQ | Medium(queue 堆積) | queue 長度、`order_processing_duration_seconds` |
 | API | Low(stateless) | p95/p99 latency |
 
-壓測分級與判讀對照:`ops/load-testing-plan.md` 第 5 節
+壓測分級與判讀對照:`docs/5_ops/load-testing-plan.md` 第 5 節
 
 ---
 
