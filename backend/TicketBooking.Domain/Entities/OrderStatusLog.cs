@@ -21,7 +21,7 @@ public class OrderStatusLog
     {
         return new OrderStatusLog
         {
-            Id = Guid.NewGuid(),
+            // 同理,不指定 Id,讓資料庫的 uuidv7() 生效(見 Order.cs 的說明)
             OrderId = orderId,
             FromStatus = fromStatus,
             ToStatus = toStatus,

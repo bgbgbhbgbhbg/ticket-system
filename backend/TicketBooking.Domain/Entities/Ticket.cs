@@ -20,7 +20,6 @@ public class Ticket
         var now = DateTime.UtcNow;
         return new Ticket
         {
-            Id = Guid.NewGuid(),
             Name = name,
             EventName = eventName,
             EventStartAt = eventStartAt,
