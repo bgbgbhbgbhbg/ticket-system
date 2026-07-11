@@ -3,7 +3,7 @@ using TicketBooking.Domain.Enums;
 namespace TicketBooking.Domain.Exceptions;
 
 /// <summary>
-/// 對應 docs/specs/domain-state-machine.md 定義的不合法狀態轉換。
+/// 對應 docs/3_specs/domain-state-machine.md 定義的不合法狀態轉換。
 /// 例如:Success/Failed 是終態不可逆、Pending 不可跳級到 Success 等。
 /// </summary>
 public class InvalidStatusTransitionException : Exception
