@@ -128,7 +128,7 @@ erDiagram
 
 | 欄位 | 型別 | 約束 | 說明 |
 |---|---|---|---|
-| id | uuid | PK | 票券唯一識別碼 |
+| id | uuid | PK, default `uuidv7()` | 票券唯一識別碼 |
 | name | varchar(200) | NOT NULL | 票種名稱(如「VIP 區」) |
 | event_name | varchar(200) | NOT NULL | 活動名稱 |
 | event_start_at | timestamptz | NOT NULL | 活動開始時間 |
@@ -161,7 +161,7 @@ WHERE id = :ticket_id
 
 | 欄位 | 型別 | 約束 | 說明 |
 |---|---|---|---|
-| id | uuid | PK | 訂單唯一識別碼 |
+| id | uuid | PK, default `uuidv7()` | 訂單唯一識別碼 |
 | user_id | uuid | FK → users.id, NOT NULL | |
 | ticket_id | uuid | FK → tickets.id, NOT NULL | |
 | quantity | int | NOT NULL, `CHECK (quantity > 0)` | 購買數量 |
@@ -179,13 +179,15 @@ WHERE id = :ticket_id
 **status 允許值**(對應狀態機):
 `Pending` → `Processing` → `Success` | `Failed`
 
+**與 C# 程式碼的對應**:資料庫層存的是文字(`varchar(20)`),對應到 `TicketBooking.Domain.Enums.OrderStatus` 這個 enum,EF Core Configuration 用 `.HasConversion<string>()` 做轉換(見 `adr-006-ddd-lite-vs-3tier.md`)。enum 是 C# 型別安全層的決定,不影響資料庫實際儲存的型別。
+
 ---
 
 ### 2.4 `order_status_logs`
 
 | 欄位 | 型別 | 約束 | 說明 |
 |---|---|---|---|
-| id | uuid | PK | |
+| id | uuid | PK, default `uuidv7()` | |
 | order_id | uuid | FK → orders.id, NOT NULL | |
 | from_status | varchar(20) | NULL(初始狀態為 NULL) | |
 | to_status | varchar(20) | NOT NULL | |
