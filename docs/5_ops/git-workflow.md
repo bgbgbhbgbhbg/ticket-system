@@ -24,7 +24,7 @@ git commit -m "ci: 加入 GitHub Actions 最小可行 pipeline"
 
 **不採用**傳統 Git Flow(`main` + `develop` + `release/*` + `hotfix/*` 那一整套),**採用**簡化版 GitHub Flow:只有 `main` + 短命的 `feature/*` 分支。
 
-**為什麼**:傳統 Git Flow 是為了「有固定發版週期、需要同時維護多個版本」的專案設計的(例如要同時支援 v1.2 的 hotfix 和 v2.0 的開發)。這個專案是單人 demo,沒有版本並行維護的需求,`develop`/`release` 這些分支只會增加不必要的合併複雜度,對專案呈現也沒有加分——重點在於「有沒有 PR 習慣」,不是「有沒有背誦 Git Flow 那五種分支」。
+**為什麼**:傳統 Git Flow 是為了「有固定發版週期、需要同時維護多個版本」的專案設計的(例如要同時支援 v1.2 的 hotfix 和 v2.0 的開發)。這個專案是單人 demo,沒有版本並行維護的需求,`develop`/`release` 這些分支只會增加不必要的合併複雜度,對專案呈現也沒有加分——重點在於「有沒有 PR 習慣」這個工程紀律,不是「有沒有背誦 Git Flow 那五種分支」。
 
 分支命名規則:
 
@@ -58,7 +58,7 @@ git push -u origin feature/tickets-crud
 2. PR 頁面右側「Reviewers」欄位,加入 **Copilot** 當 reviewer(GitHub 內建功能,不需要額外設定,只要你的帳號有 Copilot 授權就會出現在選單裡)
 3. Copilot 會在幾分鐘內自動掃過 diff,在有疑慮的地方留下 review comment(例如漏處理 null、SQL Injection 風險、命名不一致等)
 4. 你自己看過 Copilot 的評論,處理完覺得沒問題,自己點 **"Approve"**,再點 **"Merge pull request"**
-5. 建議選 **"Squash and merge"**(不是 "Create a merge commit"),這樣 `main` 的歷史會是一條乾淨的線性記錄,每個 PR 對應剛好一個 commit,任何人看 commit history 時一目瞭然
+5. 建議選 **"Squash and merge"**(不是 "Create a merge commit"),這樣 `main` 的歷史會是一條乾淨的線性記錄,每個 PR 對應剛好一個 commit,任何人看 commit history 時都一目瞭然
 
 ---
 
@@ -155,24 +155,32 @@ services:
 
 ## 5. PR 相關的 GitHub 網頁設定(一次性設定,做一次就好)
 
-### 5.1 設定 Branch Protection Rule(強制走 PR,不能直接 push 到 main)
+### 5.1 設定 Ruleset(強制走 PR,不能直接 push 到 main)
 
-1. 到 repo 頁面 → **Settings** → 左側選單 **Branches**
-2. **"Branch protection rules"** 底下點 **"Add rule"**
-3. **"Branch name pattern"** 填 `main`
-4. 勾選以下選項:
-   - ✅ **"Require a pull request before merging"**(強制走 PR,不能直接 push 到 main)
-   - ✅ **"Require status checks to pass before merging"**,並在下方搜尋框選擇你 `ci.yml` 裡定義的 job 名稱(即 `build-and-test`)——這樣 CI 沒過,PR 的 "Merge" 按鈕會被鎖住,按不下去
-   - ⬜ **"Require approvals"** 這個可以不勾——因為你是單人專案,沒有其他人可以 approve,勾了反而會把自己鎖死進不去
-5. 存檔
+GitHub 目前把分支保護規則統一整合進 **Rulesets** 系統(比舊版「Branch protection rules」更完整),設定位置:repo 頁面 → **Settings** → 左側選單 **Rules** → **Rulesets** → **New ruleset**(或直接編輯既有的一條,不要同時留兩條都指向 `main`,容易互相打架、也難維護)。
 
-### 5.2 讓 Copilot 出現在 PR 的 Reviewer 選單
+Target 選 **Default branch**(也就是 `main`),然後照下表設定:
 
-不需要額外設定,只要:
-- 你的 GitHub 帳號有 Copilot 授權(個人版或透過學校/公司)
-- Repo 有開啟 Copilot 功能(通常個人 repo 預設就有)
+| 規則 | 設定 | 為什麼 |
+|---|---|---|
+| Restrict creations / updates / deletions | 關閉 | 這幾條是多人團隊管理分支建立/更新/刪除權限用的,單人專案用不到,開了反而可能誤鎖自己 |
+| **Require linear history** | 開啟 | 強制合併只能用 squash/rebase,不能產生 merge commit,對應第 2 節建議的 "Squash and merge" 策略 |
+| Require deployments to succeed | 關閉 | 本專案沒有接 CD 部署到正式環境 |
+| Require signed commits | 可選,先關閉 | 需要額外設定 commit 簽章,增加操作摩擦,非必要 |
+| **Require a pull request before merging** | 開啟,approvals 數量設 **0** | 核心規則,強制走 PR。設 0 是因為單人專案沒有其他人可以 approve,設高會把自己鎖死 |
+| **Require status checks to pass** | 開啟,勾選 `ci.yml` 裡的 job(`build-and-test`) | CI 沒過,merge 按鈕就按不下去,是實質強制力 |
+| **Block force pushes** | 開啟 | 防止手滑 `git push --force` 把 main 的歷史改掉 |
+| Require code scanning results / Require code quality results / Restrict code coverage | 先關閉 | 這幾條要搭配 CodeQL、程式碼品質分析、覆蓋率上傳等額外工具鏈才有東西可判斷,現階段還沒建到那個程度,之後有餘力可以當進階亮點加回來 |
 
-開 PR 時,右側欄位 "Reviewers" 點下拉選單,應該會直接看到 "Copilot" 這個選項,點選加入即可,它會在幾分鐘內自動跑完 review。
+### 5.2 Copilot 自動 Review 設定
+
+同一個 ruleset 畫面裡會有:
+
+| 選項 | 設定 | 為什麼 |
+|---|---|---|
+| Automatically request Copilot code review | 開啟 | 每次開 PR 自動加 Copilot 當 reviewer,不用手動加 |
+| ┗ Review new pushes | 開啟 | PR 開了之後通常會再 push 幾次修正,確保每次新 push 都重新被 review |
+| ┗ Review draft pull requests | 關閉 | Draft PR 是還在寫的階段,先不要被打斷,標記成 "Ready for review" 後再認真 review 一次 |
 
 ---
 
