@@ -8,7 +8,12 @@ public class TicketConfiguration : IEntityTypeConfiguration<Ticket>
 {
     public void Configure(EntityTypeBuilder<Ticket> builder)
     {
-        builder.ToTable("tickets");
+        builder.ToTable("tickets", t =>
+        {
+            t.HasCheckConstraint("ck_tickets_total_quantity", "total_quantity >= 0");
+            t.HasCheckConstraint("ck_tickets_available_quantity", "available_quantity >= 0");
+            t.HasCheckConstraint("ck_tickets_price", "price >= 0");
+        });
 
         builder.HasKey(t => t.Id);
         builder.Property(t => t.Id)
@@ -33,18 +38,15 @@ public class TicketConfiguration : IEntityTypeConfiguration<Ticket>
         builder.Property(t => t.TotalQuantity)
             .HasColumnName("total_quantity")
             .IsRequired();
-        builder.HasCheckConstraint("ck_tickets_total_quantity", "total_quantity >= 0");
 
         builder.Property(t => t.AvailableQuantity)
             .HasColumnName("available_quantity")
             .IsRequired();
-        builder.HasCheckConstraint("ck_tickets_available_quantity", "available_quantity >= 0");
 
         builder.Property(t => t.Price)
             .HasColumnName("price")
             .HasColumnType("numeric(10,2)")
             .IsRequired();
-        builder.HasCheckConstraint("ck_tickets_price", "price >= 0");
 
         builder.Property(t => t.Version)
             .HasColumnName("version")

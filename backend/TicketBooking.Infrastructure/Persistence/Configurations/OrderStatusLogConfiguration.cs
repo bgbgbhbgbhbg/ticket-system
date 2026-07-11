@@ -19,13 +19,23 @@ public class OrderStatusLogConfiguration : IEntityTypeConfiguration<OrderStatusL
             .HasColumnName("order_id")
             .IsRequired();
 
+        // 新增:外鍵約束(之前漏掉的部分)
+        builder.HasOne<Order>()
+            .WithMany()
+            .HasForeignKey(l => l.OrderId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // 修改:FromStatus 是 OrderStatus?(nullable enum,對應初始狀態為 NULL),加 HasConversion<string>
         builder.Property(l => l.FromStatus)
             .HasColumnName("from_status")
-            .HasColumnType("varchar(20)");
+            .HasColumnType("varchar(20)")
+            .HasConversion<string>();
 
+        // 修改:ToStatus 是 OrderStatus enum,加 HasConversion<string>
         builder.Property(l => l.ToStatus)
             .HasColumnName("to_status")
             .HasColumnType("varchar(20)")
+            .HasConversion<string>()
             .IsRequired();
 
         builder.Property(l => l.Reason)
@@ -37,10 +47,5 @@ public class OrderStatusLogConfiguration : IEntityTypeConfiguration<OrderStatusL
             .HasColumnType("timestamptz")
             .IsRequired()
             .HasDefaultValueSql("now()");
-
-        builder.HasOne<Order>()
-            .WithMany()
-            .HasForeignKey(l => l.OrderId)
-            .OnDelete(DeleteBehavior.Restrict);
     }
 }
