@@ -20,7 +20,7 @@ public class Order
     private Order() { }
 
     /// <summary>
-    /// 唯一合法的建立訂單方式,對應 docs/specs/api-spec.yaml 的 POST /orders。
+    /// 唯一合法的建立訂單方式,對應 docs/3_specs/api-spec.yaml 的 POST /orders。
     /// 建立時狀態固定是 Pending,不接受外部指定其他初始狀態。
     /// </summary>
     public static Order Create(Guid userId, Guid ticketId, int quantity, decimal totalAmount, string idempotencyKey)
