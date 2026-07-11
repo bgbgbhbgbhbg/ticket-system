@@ -65,7 +65,7 @@ public class Order
 
     private static bool IsValidTransition(OrderStatus from, OrderStatus to)
     {
-        // 對照 docs/specs/domain-state-machine.md 第 3 節的合法轉換表
+        // 對照 docs/3_specs/domain-state-machine.md 第 3 節的合法轉換表
         return (from, to) switch
         {
             (OrderStatus.Pending, OrderStatus.Processing) => true,

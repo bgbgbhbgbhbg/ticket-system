@@ -1,6 +1,6 @@
 # Development Roadmap
 
-> 本文件定義接下來的功能開發順序與對應分支策略，基於 `docs/test-plan.md` 的測試案例與 `docs/specs/` 的完整規格。每個 task 完成後應回到 `test-plan.md` 勾選對應項目。
+> 本文件定義接下來的功能開發順序與對應分支策略，基於 `docs/test-plan.md` 的測試案例與 `docs/3_specs/` 的完整規格。每個 task 完成後應回到 `test-plan.md` 勾選對應項目。
 
 ---
 

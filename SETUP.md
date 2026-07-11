@@ -314,7 +314,7 @@ EOF
 
 ---
 
-## 6. 資料庫 Migration(對應 `docs/specs/data-model.md`)
+## 6. 資料庫 Migration(對應 `docs/3_specs/data-model.md`)
 
 在 Clean Architecture 下,`AppDbContext` 放在 `TicketBooking.Infrastructure`,但啟動設定(連線字串等)在 `TicketBooking.Api`,所以下指令時要用 `--project` 和 `--startup-project` 指定:
 

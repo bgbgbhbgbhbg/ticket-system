@@ -29,7 +29,7 @@
 - **DDD-Lite**:Entity 封裝狀態轉換邏輯,避免貧血模型,詳見 `docs/adr/006-ddd-lite-vs-3tier.md`
 - **Clean Architecture(水平分層)**:Domain/Application/Infrastructure/Api 四個獨立專案,Domain 零依賴,清楚展示 Dependency Inversion,詳見 `docs/adr/007-clean-architecture-layering.md`
 - **API 版本號與角色權限分離設計**:版本號解決契約相容性,角色權限解決存取控制,兩者不互相耦合,詳見 `docs/adr/005-api-versioning-and-rbac.md`
-- **規格驅動開發**:所有實作都對照 `docs/specs/` 的規格文件進行,而不是憑感覺邊寫邊想
+- **規格驅動開發**:所有實作都對照 `docs/3_specs/` 的規格文件進行,而不是憑感覺邊寫邊想
 
 ---
 
@@ -94,7 +94,7 @@ SETUP.md                    # 環境架設步驟
 
 ```
 1. 需求變更 → 先改 docs/PRD.md
-2. 細節設計 → 更新 docs/specs/ 對應文件
+2. 細節設計 → 更新 docs/3_specs/ 對應文件
 3. 重大決策 → 補一份 docs/adr/
 4. 照規格寫程式碼(AI 協作時參照 AGENTS.md)
 5. 對照 docs/test-plan.md 補測試

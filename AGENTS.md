@@ -39,18 +39,18 @@
 
 **`docs/` 底下的文件是唯一真實來源(Source of Truth)。**
 
-任何程式碼實作,如果跟 `docs/specs/` 或 `docs/adr/` 的內容衝突,以文件為準。如果你(AI)覺得文件寫得不合理,**先提出來討論,不要自行決定改用別的做法**。
+任何程式碼實作,如果跟 `docs/3_specs/` 或 `docs/adr/` 的內容衝突,以文件為準。如果你(AI)覺得文件寫得不合理,**先提出來討論,不要自行決定改用別的做法**。
 
 寫程式碼前,務必先讀過對應的規格文件:
 
 | 要寫的功能 | 先讀 |
 |---|---|
-| Entity / Migration | `docs/specs/data-model.md` |
-| 訂單狀態轉換邏輯 | `docs/specs/domain-state-machine.md` |
-| Controller / API 回應格式 | `docs/specs/api-spec.yaml` |
-| 錯誤處理 / errorCode | `docs/specs/error-codes.md` |
-| Redis 相關程式碼 | `docs/specs/cache-strategy.md` |
-| RabbitMQ 發布/消費邏輯 | `docs/specs/message-contracts.md` |
+| Entity / Migration | `docs/3_specs/data-model.md` |
+| 訂單狀態轉換邏輯 | `docs/3_specs/domain-state-machine.md` |
+| Controller / API 回應格式 | `docs/3_specs/api-spec.yaml` |
+| 錯誤處理 / errorCode | `docs/3_specs/error-codes.md` |
+| Redis 相關程式碼 | `docs/3_specs/cache-strategy.md` |
+| RabbitMQ 發布/消費邏輯 | `docs/3_specs/message-contracts.md` |
 | 任何架構層級的選擇(要不要拆服務、要不要換 MQ) | 先看 `docs/adr/` 有沒有相關決策,不要重新發明 |
 
 ---
@@ -64,9 +64,9 @@
 具體規則:
 
 - **依賴方向只能由外往內**:`TicketBooking.Api` → `TicketBooking.Infrastructure` → `TicketBooking.Application` → `TicketBooking.Domain`。`TicketBooking.Domain` **不可以**引用任何其他專案或第三方套件(EF Core、Redis client 等一律不能出現在 Domain 專案的 PackageReference)。
-- **EF Core 設定用 Fluent API,不用 Data Annotations**(見 `docs/specs/data-model.md` 第 0.1 節)。Entity 上不要加 `[Key]`、`[Required]`、`[Column]` 這類 attribute,每個 Entity 對應一個 `IEntityTypeConfiguration<T>` 類別放在 `TicketBooking.Infrastructure/Persistence/Configurations/`。
-- **Entity 的 `Create()` factory method 裡,`Id` 屬性絕對不要指定 `Guid.NewGuid()`**,要保持 CLR 預設值(即不指定,或明確寫 `default`)。原因:所有表的 PK 都用資料庫端的 `uuidv7()` 產生(見 `docs/specs/data-model.md` 第 0 節),如果在 C# 端先塞一個 `Guid.NewGuid()`,EF Core 會判斷這個值「已經被明確指定」,直接把它寫進 INSERT 語句,完全繞過資料庫的 `uuidv7()` default,等於白白配置了但沒有生效。
-- **Entity 要帶行為,不要寫成貧血模型**(見 `docs/adr/006-ddd-lite-vs-3tier.md`)。例如 `Order` Entity 應該有 `TransitionTo(OrderStatus to, string reason)` method,內部檢查 `docs/specs/domain-state-machine.md` 定義的合法轉換表,不合法就拋 `InvalidStatusTransitionException`。**不要**把這個檢查邏輯寫在 `TicketBooking.Application` 的 Service 裡。
+- **EF Core 設定用 Fluent API,不用 Data Annotations**(見 `docs/3_specs/data-model.md` 第 0.1 節)。Entity 上不要加 `[Key]`、`[Required]`、`[Column]` 這類 attribute,每個 Entity 對應一個 `IEntityTypeConfiguration<T>` 類別放在 `TicketBooking.Infrastructure/Persistence/Configurations/`。
+- **Entity 的 `Create()` factory method 裡,`Id` 屬性絕對不要指定 `Guid.NewGuid()`**,要保持 CLR 預設值(即不指定,或明確寫 `default`)。原因:所有表的 PK 都用資料庫端的 `uuidv7()` 產生(見 `docs/3_specs/data-model.md` 第 0 節),如果在 C# 端先塞一個 `Guid.NewGuid()`,EF Core 會判斷這個值「已經被明確指定」,直接把它寫進 INSERT 語句,完全繞過資料庫的 `uuidv7()` default,等於白白配置了但沒有生效。
+- **Entity 要帶行為,不要寫成貧血模型**(見 `docs/adr/006-ddd-lite-vs-3tier.md`)。例如 `Order` Entity 應該有 `TransitionTo(OrderStatus to, string reason)` method,內部檢查 `docs/3_specs/domain-state-machine.md` 定義的合法轉換表,不合法就拋 `InvalidStatusTransitionException`。**不要**把這個檢查邏輯寫在 `TicketBooking.Application` 的 Service 裡。
 - **不要引入 Aggregate Root、Domain Event、CQRS、Event Sourcing** 這類重量級 DDD 模式,除非有對應的 ADR 明確要求。
 - `TicketBooking.Application` 只能透過 Interface(如 `IOrderRepository`、`ICacheService`、`IMessagePublisher`)呼叫 I/O,**不可以**直接 new 一個 EF Core DbContext 或 Redis client——實作永遠放在 `TicketBooking.Infrastructure`,由 `TicketBooking.Api` 的 DI 容器(`Program.cs`)組裝起來。
 - Admin 相關功能(見 `docs/adr/005-api-versioning-and-rbac.md`)不需要獨立成模組,`AdminOrdersController.cs` 放在 `TicketBooking.Api/Controllers/`,用 `[Authorize(Roles = "Admin")]` 標記即可,商業邏輯複用或擴充 `TicketBooking.Application/Services/` 底下對應的 Service。
@@ -75,18 +75,18 @@
 
 ## 3. 程式碼撰寫規則
 
-- **不要自己發明錯誤碼**,一律使用 `docs/specs/error-codes.md` 定義的 `errorCode`,如果需要新的錯誤碼,先提出來加進那份文件,再寫程式碼。
-- **不要繞過樂觀鎖機制**直接用 `UPDATE tickets SET available_quantity = available_quantity - 1`,必須照 `docs/specs/data-model.md` 2.2 節的 CAS SQL 寫法(帶 `WHERE version = :expected_version`)。
-- **API 回應格式**必須符合 `docs/specs/api-spec.yaml` 定義的 schema,不要自行增減欄位。如果發現規格有缺漏,先回報,不要自行決定加欄位。
+- **不要自己發明錯誤碼**,一律使用 `docs/3_specs/error-codes.md` 定義的 `errorCode`,如果需要新的錯誤碼,先提出來加進那份文件,再寫程式碼。
+- **不要繞過樂觀鎖機制**直接用 `UPDATE tickets SET available_quantity = available_quantity - 1`,必須照 `docs/3_specs/data-model.md` 2.2 節的 CAS SQL 寫法(帶 `WHERE version = :expected_version`)。
+- **API 回應格式**必須符合 `docs/3_specs/api-spec.yaml` 定義的 schema,不要自行增減欄位。如果發現規格有缺漏,先回報,不要自行決定加欄位。
 - **命名慣例**:
   - C# 遵循標準 .NET 慣例(PascalCase for public members, camelCase for private fields with `_` 前綴)
-  - 資料庫欄位用 snake_case(對應 `docs/specs/data-model.md` 的定義)
-  - API JSON 欄位用 camelCase(對應 `docs/specs/api-spec.yaml` 的定義)
+  - 資料庫欄位用 snake_case(對應 `docs/3_specs/data-model.md` 的定義)
+  - API JSON 欄位用 camelCase(對應 `docs/3_specs/api-spec.yaml` 的定義)
 - **輸入驗證用 ASP.NET Core 內建的 DataAnnotations**(如 `[Required]`、`[Range]`、`[MaxLength]`),不引入 FluentValidation——現階段驗證邏輯不夠複雜,不需要額外套件(如未來規則複雜到 DataAnnotations 不夠用,先補一份 ADR 討論再引入)。
 - **API 設計遵循 RESTful 規範**:
   - HTTP 方法用法:GET(查詢)/POST(建立)/PATCH(部分更新)/DELETE(刪除),不用 PUT(本專案不用完整覆蓋)
   - URL 路徑用複數名詞(`/orders`、`/tickets`),不用動詞
-  - 回應格式須符合 `docs/specs/api-spec.yaml` 定義的 schema,含標準的 HTTP status code 和 `ErrorResponse` 結構
+  - 回應格式須符合 `docs/3_specs/api-spec.yaml` 定義的 schema,含標準的 HTTP status code 和 `ErrorResponse` 結構
   - 所有 API 都必須有幂等性考慮:GET 永遠幂等;POST 可用 `Idempotency-Key` header 達到幂等;PATCH/DELETE 需檢查業務約束確保安全
 
 ---
