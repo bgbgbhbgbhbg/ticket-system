@@ -17,20 +17,20 @@
    涉及狀態邏輯？更新 `domain-state-machine.md`。  
    涉及快取/MQ/錯誤碼？對應更新各自的 spec 文件。
 
-3. **重大架構決策 → 補一份 `docs/4_adr/`**  
-   參考既有的 ADR 檔案格式(背景/決策/理由/後果/相關文件)。  
+3. **重大架構決策 → 補一份 `docs/4_adr/`**
+   參考既有的 ADR 檔案格式(背景/決策/理由/後果/相關文件)。
    不要自己決定改技術棧或改架構模式,先看有沒有相關 ADR。
 
-4. **設計測試案例 → 更新 `docs/test-plan.md`**  
+4. **設計測試案例 → 更新 `docs/test-plan.md`**
    寫程式碼之前,把對應的測試案例列在 test-plan.md,確保規格完整。
 
-5. **照規格寫程式碼**  
+5. **照規格寫程式碼**
    遵守本文件(AGENTS.md)第 2~7 節的所有規則。
 
 6. **實作對應的測試**  
    對照 test-plan.md 把測試案例勾選,不要漏掉任何環節。
 
-7. **完成後 git commit**  
+7. **完成後 git commit**
    用 Conventional Commits 格式,commit message 參照 test-plan.md 對應的測試案例編號。
 
 ---
@@ -64,6 +64,7 @@
 具體規則:
 
 - **依賴方向只能由外往內**:`TicketBooking.Api` → `TicketBooking.Infrastructure` → `TicketBooking.Application` → `TicketBooking.Domain`。`TicketBooking.Domain` **不可以**引用任何其他專案或第三方套件(EF Core、Redis client 等一律不能出現在 Domain 專案的 PackageReference)。
+- **EF Core 設定用 Fluent API,不用 Data Annotations**(見 `docs/specs/data-model.md` 第 0.1 節)。Entity 上不要加 `[Key]`、`[Required]`、`[Column]` 這類 attribute,每個 Entity 對應一個 `IEntityTypeConfiguration<T>` 類別放在 `TicketBooking.Infrastructure/Persistence/Configurations/`。
 - **Entity 要帶行為,不要寫成貧血模型**(見 `docs/adr/006-ddd-lite-vs-3tier.md`)。例如 `Order` Entity 應該有 `TransitionTo(OrderStatus to, string reason)` method,內部檢查 `docs/specs/domain-state-machine.md` 定義的合法轉換表,不合法就拋 `InvalidStatusTransitionException`。**不要**把這個檢查邏輯寫在 `TicketBooking.Application` 的 Service 裡。
 - **不要引入 Aggregate Root、Domain Event、CQRS、Event Sourcing** 這類重量級 DDD 模式,除非有對應的 ADR 明確要求。
 - `TicketBooking.Application` 只能透過 Interface(如 `IOrderRepository`、`ICacheService`、`IMessagePublisher`)呼叫 I/O,**不可以**直接 new 一個 EF Core DbContext 或 Redis client——實作永遠放在 `TicketBooking.Infrastructure`,由 `TicketBooking.Api` 的 DI 容器(`Program.cs`)組裝起來。
@@ -123,6 +124,10 @@
 
 ## 7. Commit 規則
 
-- Commit message 用 Conventional Commits 格式:`feat:`、`fix:`、`docs:`、`test:`、`refactor:`
+完整規範見 `docs/ops/git-workflow.md`,重點:
+
+- Commit message 用 Conventional Commits + scope 格式:`{type}({scope}): {描述}`,例如 `feat(api): 新增 POST /orders endpoint`
+- scope 對應目錄:`api`、`domain`、`application`、`infra`、`web`、`db`、`ci`、`docs`
 - 每個 commit 盡量對應 `test-plan.md` 裡的一或多個測試項目,方便回溯
 - 不要把 `bin/`、`obj/`、`node_modules/`、`.next/` 這些目錄的內容 commit 進去(已在 `.gitignore` 排除,見 `SETUP.md`)
+- 骨架建立階段可直接 commit 到 main,第一個功能開始後一律走 `feature/*` 分支 + PR(見 `docs/ops/git-workflow.md` 第 0、1、2 節)

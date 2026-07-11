@@ -5,6 +5,50 @@
 
 ---
 
+## 0. 主鍵生成策略:UUIDv7,不是 UUIDv4
+
+所有表的 `id` 欄位用 **`uuidv7()`**(PostgreSQL 18 原生函式),不要用 `gen_random_uuid()`(那是 UUIDv4,純亂數)。
+
+**為什麼**:UUIDv4 是完全隨機值,每次 INSERT 會落在 B-tree 索引隨機位置,造成 page split、索引膨脹、寫入效能下降(尤其在高並發搶票這種寫入密集場景更明顯)。UUIDv7 前段編碼時間戳,insert 時自然落在索引尾端,效能接近傳統自增主鍵,同時保留 UUID 全域唯一、適合分散式系統產生的優點。
+
+```sql
+-- 每張表的 id 欄位都這樣寫
+id uuid PRIMARY KEY DEFAULT uuidv7()
+```
+
+EF Core Migration 裡對應寫法:
+```csharp
+.HasDefaultValueSql("uuidv7()")
+```
+
+**已知 trade-off**:UUIDv7 的前段是時間戳,理論上會洩漏資料建立時間,如果 ID 直接對外暴露(本專案就是這樣,ID 會出現在 API 回應裡),外部技術上看得出「大概何時建立」。對本專案這種 demo 場景不構成風險,這是刻意評估過的 trade-off,而不是沒考慮到。
+
+---
+
+## 0.1 EF Core 設定方式:Fluent API,不用 Data Annotations
+
+Entity 上**不要**加 `[Key]`、`[Required]`、`[Column]` 這類 EF Core 的 Data Annotations attribute,一律用 **Fluent API**,設定寫在 `TicketBooking.Infrastructure` 裡,每個 Entity 對應一個獨立的 `IEntityTypeConfiguration<T>` 類別:
+
+```
+TicketBooking.Infrastructure/Persistence/Configurations/
+├── UserConfiguration.cs
+├── TicketConfiguration.cs
+├── OrderConfiguration.cs
+└── OrderStatusLogConfiguration.cs
+```
+
+**為什麼**(對應 `adr-007-clean-architecture-layering.md` 的分層原則):`TicketBooking.Domain` 的 Entity 要保持乾淨,不該知道自己「將來會被存進哪張表、哪個欄位型別」這種持久化細節——這是 Infrastructure 層該管的事。如果在 Entity 上貼滿 EF Core attribute,等於讓 Domain 反過來依賴持久化框架的知識,違反 Clean Architecture「依賴方向只能由外往內」的原則,也讓 `Order.TransitionTo()` 這種封裝行為的 Entity(見 `adr-006`)混進一堆跟業務邏輯無關的標記。
+
+`AppDbContext.OnModelCreating` 裡統一用這行載入所有設定,不用一個一個手動 `ApplyConfiguration`:
+```csharp
+protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+}
+```
+
+---
+
 ## 1. ER Diagram (邏輯關聯)
 
 ```mermaid
@@ -65,7 +109,7 @@ erDiagram
 
 | 欄位 | 型別 | 約束 | 說明 |
 |---|---|---|---|
-| id | uuid | PK, default `gen_random_uuid()` | 使用者唯一識別碼 |
+| id | uuid | PK, default `uuidv7()` | 使用者唯一識別碼(見第 0 節說明) |
 | email | varchar(255) | UNIQUE, NOT NULL | 登入帳號 |
 | password_hash | varchar(255) | NOT NULL | bcrypt/argon2 雜湊值,**絕不存明碼** |
 | display_name | varchar(100) | NOT NULL | 顯示名稱 |
@@ -149,14 +193,14 @@ WHERE id = :ticket_id
 | created_at | timestamptz | NOT NULL, default now() | |
 
 **用途**:
-- 這張表不是必要功能,是**面試加分項**——證明你有設計「可追溯性」(auditability),面試官問「訂單失敗要怎麼 debug」時可以直接展示這張表。
+- 這張表不是必要功能,是**額外的加分設計**——證明有考慮到「可追溯性」(auditability),被問到「訂單失敗要怎麼 debug」時可以直接展示這張表。
 - 每次 BackgroundService 處理訂單狀態轉換時,同一個 DB transaction 內寫入一筆 log。
 
 ---
 
-## 3. 為什麼這樣設計(對應面試常見提問)
+## 3. 為什麼這樣設計(常見技術提問對照)
 
-| 設計決策 | 面試官可能問 | 你的回答重點 |
+| 設計決策 | 常見提問 | 回答重點 |
 |---|---|---|
 | `tickets.version` 樂觀鎖 | 為什麼不用 `SELECT FOR UPDATE`? | 悲觀鎖在高併發下會造成 lock 等待、吞吐量下降;樂觀鎖用 CAS(compare-and-swap)方式,失敗就重試,搭配 Redis 預檢後,DB 層真正衝突的機率很低 |
 | `orders.idempotency_key` | 使用者網路不穩重複送出怎麼辦? | client 產生 UUID 當 idempotency key,DB unique constraint 保證同一個 key 只會建立一筆訂單 |
