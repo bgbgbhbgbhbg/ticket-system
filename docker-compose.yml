@@ -1,5 +1,3 @@
-version: '3.9'  # Docker Compose 檔案格式的版本號,3.9 是目前廣泛支援的穩定版本
-
 services:  # 底下定義所有要啟動的容器,每一個容器就是一個「service」
 
   postgres:  # 服務名稱,之後你的 C# 程式連線字串裡的 Host 如果寫 "postgres" 而不是 "localhost",
@@ -14,9 +12,9 @@ services:  # 底下定義所有要啟動的容器,每一個容器就是一個「
       - "5432:5432"  # 格式是 "主機port:容器內部port",代表你的 Mac 本機打 localhost:5432 會轉送進容器內部的 5432 port
                       # (Postgres 預設就是監聽 5432,這裡兩邊剛好一樣,不代表一定要一樣)
     volumes:
-      - pgdata:/var/lib/postgresql/data  # 把容器內部存資料庫檔案的路徑,掛載到下面定義的 pgdata 這個 volume
-                                          # 這樣即使你之後 docker compose down(刪除容器),資料還留在 volume 裡不會消失
-                                          # 只有 docker compose down -v 那個 -v 才會連 volume 一起刪掉,資料才會真的消失
+      - pgdata:/var/lib/postgresql  # PostgreSQL 18 建議只掛父層目錄(不是 .../data),讓 Postgres 自己在裡面管理版本化子目錄,
+                                     # 這樣未來要用 pg_upgrade --link 做版本升級才不會跨越 mount boundary
+                                     # (見 https://github.com/docker-library/postgres/pull/1259)
 
   redis:
     image: redis:7-alpine  # alpine 是精簡版 Linux base image,體積小、啟動快,對你 24GB 記憶體的機器比較友善
