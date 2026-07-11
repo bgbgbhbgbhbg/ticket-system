@@ -55,7 +55,7 @@
 1. **同步 API 錯誤**:發生在 HTTP request/response 當下,有明確的 HTTP status code(如 `AUTH_INVALID_CREDENTIALS`),前端可以立即顯示錯誤訊息。
 2. **非同步業務失敗**:訂單被受理後(HTTP 202)才在背景發生的失敗(如 `ORDER_INSUFFICIENT_INVENTORY`),這**不是 HTTP 錯誤**,而是訂單最終狀態變成 `Failed` 時,寫在 `order_status_logs.reason` 裡的值。前端要透過 `GET /orders/{orderId}` polling 才會看到這個結果。
 
-面試被問「你的錯誤處理怎麼設計」時,這個區分是重點——搶票這種「先受理、後處理」的非同步流程,不能只用傳統的同步 HTTP 錯誤碼思維去想。
+被問到「你的錯誤處理怎麼設計」時,這個區分是重點——搶票這種「先受理、後處理」的非同步流程,不能只用傳統的同步 HTTP 錯誤碼思維去想。
 
 ---
 

@@ -1,6 +1,6 @@
 # Observability Specification
 
-> 定義系統的 log、health check、基本 metrics 設計。目的是讓「系統出問題時查得到、講得出原因」,對應面試常問的「怎麼監控你的系統」。
+> 定義系統的 log、health check、基本 metrics 設計。目的是讓「系統出問題時查得到、講得出原因」,對應常見的技術問題「怎麼監控你的系統」。
 
 ---
 
@@ -58,7 +58,7 @@ GET /health
 | `cache_hit_total` / `cache_miss_total` | Counter | 對應 `cache-strategy.md` 的 cache hit rate 觀察 |
 | `optimistic_lock_retry_total` | Counter | 樂觀鎖衝突次數,異常升高代表搶票競爭激烈或系統瓶頸 |
 
-這些 metrics 搭配 Grafana 可以做出一個簡單的 dashboard,壓測時(`ops/load-testing-plan.md`)一邊跑 k6 一邊看這個 dashboard,是面試展示時很直觀的畫面。**這部分屬於加分項,不是本專案的必要功能**,環境架好、核心流程跑通後有餘力再做。
+這些 metrics 搭配 Grafana 可以做出一個簡單的 dashboard,壓測時(`ops/load-testing-plan.md`)一邊跑 k6 一邊看這個 dashboard,是很直觀的呈現方式。**這部分屬於加分項,不是本專案的必要功能**,環境架好、核心流程跑通後有餘力再做。
 
 ---
 

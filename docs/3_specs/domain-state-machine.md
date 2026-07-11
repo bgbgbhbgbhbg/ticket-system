@@ -69,7 +69,7 @@ stateDiagram-v2
         繼續迴圈
 ```
 
-**面試時的講法**:這是「CAS(Compare-And-Swap)+ bounded retry」模式,避免無限重試造成 thread 卡死,同時保留在真實衝突下讓部分請求成功、部分優雅失敗的能力。
+**專業的講法**:這是「CAS(Compare-And-Swap)+ bounded retry」模式,避免無限重試造成 thread 卡死,同時保留在真實衝突下讓部分請求成功、部分優雅失敗的能力。
 
 ---
 
@@ -82,7 +82,7 @@ stateDiagram-v2
 | Processing | Success | `"inventory_deducted"` |
 | Processing | Failed | `"insufficient_inventory"` / `"optimistic_lock_retry_exhausted"` |
 
-這張 log 表的價值:面試官問「使用者說他搶票失敗,你怎麼查?」時,你可以直接展示「查這張表就知道是哪一步、哪個 reason 失敗的」,這是很多新手專案不會做但資深工程師會在意的細節。
+這張 log 表的價值:被問到「使用者說他搶票失敗,你怎麼查?」時,你可以直接展示「查這張表就知道是哪一步、哪個 reason 失敗的」,這是很多新手專案不會做但資深工程師會在意的細節。
 
 ---
 

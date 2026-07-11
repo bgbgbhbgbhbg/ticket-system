@@ -1,6 +1,6 @@
 # Git Workflow & CI/PR Setup
 
-> 定義這個專案的分支策略、commit 規範、CI 設定方式、PR 相關的 GitHub 網頁設定。單人開發,但刻意保留 PR 流程當作紀律練習與面試展示重點。
+> 定義這個專案的分支策略、commit 規範、CI 設定方式、PR 相關的 GitHub 網頁設定。單人開發,但刻意保留 PR 流程作為工程紀律的練習與展示。
 
 ---
 
@@ -24,7 +24,7 @@ git commit -m "ci: 加入 GitHub Actions 最小可行 pipeline"
 
 **不採用**傳統 Git Flow(`main` + `develop` + `release/*` + `hotfix/*` 那一整套),**採用**簡化版 GitHub Flow:只有 `main` + 短命的 `feature/*` 分支。
 
-**為什麼**:傳統 Git Flow 是為了「有固定發版週期、需要同時維護多個版本」的專案設計的(例如要同時支援 v1.2 的 hotfix 和 v2.0 的開發)。這個專案是單人 demo,沒有版本並行維護的需求,`develop`/`release` 這些分支只會增加不必要的合併複雜度,對面試展示也沒有加分——面試官更在意你「有沒有 PR 習慣」,不是「有沒有背誦 Git Flow 那五種分支」。
+**為什麼**:傳統 Git Flow 是為了「有固定發版週期、需要同時維護多個版本」的專案設計的(例如要同時支援 v1.2 的 hotfix 和 v2.0 的開發)。這個專案是單人 demo,沒有版本並行維護的需求,`develop`/`release` 這些分支只會增加不必要的合併複雜度,對專案呈現也沒有加分——重點在於「有沒有 PR 習慣」,不是「有沒有背誦 Git Flow 那五種分支」。
 
 分支命名規則:
 
@@ -58,7 +58,7 @@ git push -u origin feature/tickets-crud
 2. PR 頁面右側「Reviewers」欄位,加入 **Copilot** 當 reviewer(GitHub 內建功能,不需要額外設定,只要你的帳號有 Copilot 授權就會出現在選單裡)
 3. Copilot 會在幾分鐘內自動掃過 diff,在有疑慮的地方留下 review comment(例如漏處理 null、SQL Injection 風險、命名不一致等)
 4. 你自己看過 Copilot 的評論,處理完覺得沒問題,自己點 **"Approve"**,再點 **"Merge pull request"**
-5. 建議選 **"Squash and merge"**(不是 "Create a merge commit"),這樣 `main` 的歷史會是一條乾淨的線性記錄,每個 PR 對應剛好一個 commit,面試官看 commit history 時一目瞭然
+5. 建議選 **"Squash and merge"**(不是 "Create a merge commit"),這樣 `main` 的歷史會是一條乾淨的線性記錄,每個 PR 對應剛好一個 commit,任何人看 commit history 時一目瞭然
 
 ---
 

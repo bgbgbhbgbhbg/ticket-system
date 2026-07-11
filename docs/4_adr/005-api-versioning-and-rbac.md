@@ -18,7 +18,7 @@
 | Header Versioning | `Accept: application/vnd.ticketbooking.v1+json` | URL 乾淨不變 | 不直觀,測試/debug 時不容易一眼看出呼叫的是哪個版本 |
 | Query Parameter | `/api/orders?version=1` | 實作簡單 | 容易被忽略(忘記帶 query 就退回不明確的預設行為),語意上version 不該是「參數」 |
 
-**選 URL Path 的理由**:對於練習型專案與面試展示,URL Path 版本號是業界最常見、最容易在 Swagger UI 上直接看出差異的做法,溝通成本最低。
+**選 URL Path 的理由**:對於練習型專案而言,URL Path 版本號是業界最常見、最容易在 Swagger UI 上直接看出差異的做法,溝通成本最低。
 
 ## 版本策略細節
 - 目前只有 `v1`,User 端與 Admin 端**共用同一個版本號**,不因為角色不同就拆版本。
@@ -42,5 +42,5 @@
 ## 後果
 - 目前 admin 相關 endpoint 沒有做「操作紀錄稽核」(誰在什麼時候把哪筆訂單狀態改成什麼),如果要更完整,可以之後在 `order_status_logs` 表加一個 `operated_by` 欄位記錄是哪個 admin 帳號觸發的轉換。這個先記錄下來,不在本次範圍內,避免文件範圍無限擴大。
 
-## 面試問題
+## 技術討論重點
 「版本號解決的是『契約相容性』問題,角色權限解決的是『誰能存取什麼』問題,這是兩個維度,不要用版本號去表達權限(例如不會做 `/api/v1/orders` 給 User、`/api/v1-admin/orders` 給 Admin 這種設計),分開處理邏輯才乾淨。」

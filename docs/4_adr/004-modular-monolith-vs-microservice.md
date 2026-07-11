@@ -57,5 +57,5 @@ TicketBooking.Api/             # Controller + DI 組裝
 - 現階段所有模組共用同一個 PostgreSQL 實例與 connection pool,如果某個模組流量暴增,可能影響其他模組(monolith 常見的「noisy neighbor」問題),但對本專案規模而言可接受。
 - **重要**: 內部模組邊界設計(如何組織 Auth/Tickets/Orders 的程式碼)由 ADR 007 定義,採用 Clean Architecture 水平分層而非垂直切法(Feature Module)。見 `docs/adr/007-clean-architecture-layering.md`。
 
-## 面試問題
+## 技術討論重點
 「我選 Modular Monolith 不是因為不會微服務,是因為在還沒有『多團隊獨立部署』或『某個模組需要獨立擴展』的真實需求前,微服務只會增加分散式交易與維運的複雜度。但我在模組邊界上刻意做了隔離,如果之後真的要拆,阻力會比一開始就是一坨義大利麵條式的 monolith 小很多。」

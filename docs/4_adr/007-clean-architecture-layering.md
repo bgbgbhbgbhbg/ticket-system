@@ -21,8 +21,8 @@ TicketBooking.Api               # 依賴 Application + Infrastructure,Controller
 ## 理由
 
 1. **規模不到需要模組隔離的程度**:本專案只有 User、Ticket、Order 三個核心 Entity,Feature Module 那種「每個模組自己一份四層資料夾」的重複結構,在這個規模下增加的是維護負擔,不是清晰度。
-2. **Domain 純淨度更容易展示**:獨立成一個 `.csproj` 且不引用任何套件,是證明「Dependency Inversion Principle」最直接的方式——面試官打開 `.csproj` 檔案看到零 PackageReference,比看資料夾結構更有說服力。
-3. **業界辨識度**:Clean/Onion Architecture 是最多教學資源、最多面試官熟悉的分層方式,對 demo 專案而言,溝通成本比自創的模組邊界低。
+2. **Domain 純淨度更容易展示**:獨立成一個 `.csproj` 且不引用任何套件,是證明「Dependency Inversion Principle」最直接的方式——打開 `.csproj` 檔案看到零 PackageReference,比看資料夾結構更有說服力。
+3. **業界辨識度**:Clean/Onion Architecture 是最多教學資源、業界最多人熟悉的分層方式,對 demo 專案而言,溝通成本比自創的模組邊界低。
 4. **測試分層對應清楚**:`Application` 層的 Service 是單元測試的對象(mock `IOrderRepository` 等 interface),`Infrastructure` 層是整合測試(Testcontainers)的對象,這個對應在水平分層下非常直觀。
 
 ## 與既有決策的關係(重要,避免文件矛盾)
@@ -66,5 +66,5 @@ tests/
 - `AGENTS.md` 第 2 節提到的模組邊界規則也需要對應調整(改成「層與層之間的依賴方向規則」而非「模組之間不可互相引用 Entity」)。
 - 如果未來專案規模真的成長到需要按功能模組化(例如加入更多完全不相關的業務領域),屆時可以在現有的 `Application/Services` 底下用資料夾分組(如 `Services/Orders/`、`Services/Payments/`)先做邏輯分組,不急著在現階段拆專案。
 
-## 面試問題
+## 技術討論重點
 「部署層級我用 Modular Monolith(不拆微服務),但內部程式碼組織我選 Clean Architecture 水平分層,因為現階段的領域複雜度(3 個 Entity)還沒到需要模組隔離的規模,水平分層更能清楚展示 Dependency Inversion——這是兩個獨立的架構決策維度,不要混為一談。」
