@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TicketBooking.Domain.Entities;
+using TicketBooking.Domain.Enums;
 
 namespace TicketBooking.Infrastructure.Persistence.Configurations;
 
@@ -8,7 +9,10 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
 {
     public void Configure(EntityTypeBuilder<Order> builder)
     {
-        builder.ToTable("orders");
+        builder.ToTable("orders", t =>
+        {
+            t.HasCheckConstraint("ck_orders_quantity", "quantity > 0");
+        });
 
         builder.HasKey(o => o.Id);
         builder.Property(o => o.Id)
@@ -21,27 +25,41 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.HasIndex(o => o.UserId)
             .HasDatabaseName("idx_orders_user_id");
 
+        // 新增:外鍵約束(之前漏掉的部分),Restrict 避免刪除 User 時連帶砍掉訂單財務紀錄
+        builder.HasOne<User>()
+            .WithMany()
+            .HasForeignKey(o => o.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.Property(o => o.TicketId)
             .HasColumnName("ticket_id")
             .IsRequired();
         builder.HasIndex(o => o.TicketId)
             .HasDatabaseName("idx_orders_ticket_id");
 
+        // 新增:外鍵約束
+        builder.HasOne<Ticket>()
+            .WithMany()
+            .HasForeignKey(o => o.TicketId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.Property(o => o.Quantity)
             .HasColumnName("quantity")
             .IsRequired();
-        builder.HasCheckConstraint("ck_orders_quantity", "quantity > 0");
 
         builder.Property(o => o.TotalAmount)
             .HasColumnName("total_amount")
             .HasColumnType("numeric(10,2)")
             .IsRequired();
 
+        // 修改:Status 現在是 OrderStatus enum,加 HasConversion<string> 讓資料庫存文字而不是整數,
+        // 方便你直接在 DBeaver 裡看資料時一眼認出狀態,不用對照數字
         builder.Property(o => o.Status)
             .HasColumnName("status")
             .HasColumnType("varchar(20)")
+            .HasConversion<string>()
             .IsRequired()
-            .HasDefaultValue("Pending");
+            .HasDefaultValue(OrderStatus.Pending);
 
         builder.Property(o => o.IdempotencyKey)
             .HasColumnName("idempotency_key")
@@ -62,15 +80,5 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasColumnType("timestamptz")
             .IsRequired()
             .HasDefaultValueSql("now()");
-
-        builder.HasOne<User>()
-            .WithMany()
-            .HasForeignKey(o => o.UserId)
-            .OnDelete(DeleteBehavior.Restrict);   // 不允許刪除 User 時連帶砍掉他的訂單紀錄
-
-        builder.HasOne<Ticket>()
-            .WithMany()
-            .HasForeignKey(o => o.TicketId)
-            .OnDelete(DeleteBehavior.Restrict);
     }
 }
