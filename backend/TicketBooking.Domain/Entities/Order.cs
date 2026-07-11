@@ -41,7 +41,7 @@ public class Order
     }
 
     /// <summary>
-    /// 狀態轉換的唯一入口,合法規則對照 docs/specs/domain-state-machine.md 第 3 節。
+    /// 狀態轉換的唯一入口,合法規則對照 docs/3_specs/domain-state-machine.md 第 3 節。
     /// 不合法的轉換直接拋例外,呼叫端(Application 層)負責 catch 並轉換成對應的 errorCode。
     /// </summary>
     public void TransitionTo(OrderStatus to, string reason)
