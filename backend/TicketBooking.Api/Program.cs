@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System.Text;
+using TicketBooking.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +45,18 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
+
+// DbContext 配置(對應 SETUP.md 第 5.2 節 & AGENTS.md 第 2 節)
+var connectionString = builder.Configuration["ConnectionStrings:Postgres"];
+if (string.IsNullOrEmpty(connectionString))
+{
+    throw new InvalidOperationException(
+        "連線字串未配置。請執行:\n" +
+        "dotnet user-secrets set \"ConnectionStrings:Postgres\" \"Host=localhost;Database=ticket_booking;Username=ticket_admin;Password=...\"");
+}
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString));
 
 var app = builder.Build();
 

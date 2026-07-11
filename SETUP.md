@@ -97,6 +97,7 @@ cd ..
 
 cd TicketBooking.Api
 dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+dotnet add package Microsoft.EntityFrameworkCore.Design --version 9.0.2
 # .NET 9 移除了 Swashbuckle,官方原生方案是 Microsoft.AspNetCore.OpenApi(產生 spec)+ Scalar(UI),
 # 不需要另外裝 Swashbuckle,這是目前多數團隊採用的組合
 dotnet add package Microsoft.AspNetCore.OpenApi
