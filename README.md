@@ -47,7 +47,7 @@ docker compose up -d
 cd backend/TicketBooking.Api
 dotnet ef database update
 
-# 3. 啟動後端(含 Swagger UI: http://localhost:5000/swagger)
+# 3. 啟動後端(含 API 文件 Scalar UI: http://localhost:5000/scalar/v1)
 dotnet watch run
 
 # 4. 啟動前端(另開終端機)
@@ -81,7 +81,8 @@ docs/
 ├── test-plan.md            # 規格對應的測試案例追蹤
 └── ops/
     ├── load-testing-plan.md
-    └── observability.md
+    ├── observability.md
+    └── git-workflow.md      # Git 分支策略、commit 規範、CI/PR 設定
 
 AGENTS.md                   # AI 協作規範(Copilot 等工具需遵守)
 SETUP.md                    # 環境架設步驟
