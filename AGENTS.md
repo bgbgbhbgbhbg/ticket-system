@@ -30,8 +30,11 @@
 6. **實作對應的測試**
    對照 test-plan.md 把測試案例勾選,不要漏掉任何環節。
 
-7. **完成後 git commit**
-   用 Conventional Commits 格式,commit message 參照 test-plan.md 對應的測試案例編號。
+7. **完成後 留下對應的 commit 內容**
+   請根據 test-plan.md 的測試案例編號，留下對應的 Conventional Commits 格式訊息（例如 test: 依據 UT-01 案例完成 TicketService 單元測試，參照 test-plan.md 對應的測試案例編號），後續由我手動進行 commit。
+
+8. **關閉前後端連線**
+   測試完成後，請務必將前端與後端正在執行（Run）的測試與服務全部關閉，否則連接埠（Port）會被佔用，導致我等一下在 Local 無法順利跑起前後端專案。
 
 ---
 
