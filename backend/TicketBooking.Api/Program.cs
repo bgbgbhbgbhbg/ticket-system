@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
@@ -61,11 +62,38 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // 註冊 Controllers
 builder.Services.AddControllers();
 
+// 加這一段:把 [ApiController] 自動驗證失敗的回應,轉成統一的 ErrorResponse 格式
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var firstError = context.ModelState.Values
+            .SelectMany(v => v.Errors)
+            .Select(e => e.ErrorMessage)
+            .FirstOrDefault() ?? "輸入驗證失敗";
+
+        return new UnprocessableEntityObjectResult(new TicketBooking.Api.Dtos.ErrorResponse
+        {
+            ErrorCode = "VALIDATION_ERROR",
+            Message = firstError,
+            TraceId = context.HttpContext.TraceIdentifier
+        });
+    };
+});
+
 // 註冊 Repository 和 Service (對應 AGENTS.md 第 2 節 Clean Architecture DI 組裝)
 builder.Services.AddScoped<TicketBooking.Application.Interfaces.Repositories.ITicketRepository,
     TicketBooking.Infrastructure.Repositories.TicketRepository>();
 builder.Services.AddScoped<TicketBooking.Application.Interfaces.Services.ITicketService,
     TicketBooking.Application.Services.TicketService>();
+
+// Auth 相關服務
+builder.Services.AddScoped<TicketBooking.Application.Interfaces.Repositories.IUserRepository,
+    TicketBooking.Infrastructure.Repositories.UserRepository>();
+builder.Services.AddScoped<TicketBooking.Application.Interfaces.Services.IAuthService,
+    TicketBooking.Application.Services.AuthService>();
+builder.Services.AddScoped<TicketBooking.Application.Interfaces.Security.IPasswordHasher,
+    TicketBooking.Infrastructure.Security.PasswordHasher>();
 
 var app = builder.Build();
 
