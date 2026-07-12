@@ -22,4 +22,10 @@ public interface IOrderRepository
     /// 建立新訂單，回傳資料庫產生 Id 後的完整物件
     /// </summary>
     Task<Order> CreateAsync(Order order, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 更新訂單狀態，並在同一個 DB transaction 內寫入一筆 OrderStatusLog。
+    /// 對應 docs/3_specs/domain-state-machine.md 第 5 節「每個轉換都要寫 order_status_logs」的要求。
+    /// </summary>
+    Task UpdateAndAddStatusLogAsync(Order order, OrderStatusLog log, CancellationToken cancellationToken = default);
 }
