@@ -48,7 +48,7 @@ public class AuthController : ControllerBase
             {
                 ErrorCode = "AUTH_EMAIL_ALREADY_EXISTS",
                 Message = $"Email '{request.Email}' is already registered",
-                TraceId = Activity.Current?.Id
+                TraceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier
             });
         }
     }
@@ -77,7 +77,7 @@ public class AuthController : ControllerBase
             {
                 ErrorCode = "AUTH_INVALID_CREDENTIALS",
                 Message = "Invalid email or password",
-                TraceId = Activity.Current?.Id
+                TraceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier
             });
         }
     }
@@ -86,8 +86,7 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetMe(CancellationToken cancellationToken)
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? User.FindFirst("sub")?.Value;
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var userId))
         {
@@ -95,7 +94,7 @@ public class AuthController : ControllerBase
             {
                 ErrorCode = "AUTH_TOKEN_INVALID",
                 Message = "Invalid token",
-                TraceId = Activity.Current?.Id
+                TraceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier
             });
         }
 
@@ -106,7 +105,7 @@ public class AuthController : ControllerBase
             {
                 ErrorCode = "AUTH_TOKEN_INVALID",
                 Message = "User not found",
-                TraceId = Activity.Current?.Id
+                TraceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier
             });
         }
 

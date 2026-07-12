@@ -128,12 +128,13 @@ export const apiClient = {
       body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      const error: ApiError = await response.json();
-      throw error;
+    // 202 = 新訂單建立成功；409 = Idempotency-Key 重複（回傳原訂單 OrderResponse，對應 api-spec.yaml）
+    if (response.status === 202 || response.status === 409) {
+      return response.json();
     }
 
-    return response.json();
+    const error: ApiError = await response.json();
+    throw error;
   },
 
   /**

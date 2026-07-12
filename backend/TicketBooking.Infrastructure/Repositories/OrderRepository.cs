@@ -20,10 +20,10 @@ public class OrderRepository : IOrderRepository
             .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
     }
 
-    public async Task<Order?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default)
+    public async Task<Order?> GetByIdempotencyKeyAsync(string idempotencyKey, Guid userId, CancellationToken cancellationToken = default)
     {
         return await _context.Orders
-            .FirstOrDefaultAsync(o => o.IdempotencyKey == idempotencyKey, cancellationToken);
+            .FirstOrDefaultAsync(o => o.IdempotencyKey == idempotencyKey && o.UserId == userId, cancellationToken);
     }
 
     public async Task<Order> CreateAsync(Order order, CancellationToken cancellationToken = default)

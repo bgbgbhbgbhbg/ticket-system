@@ -46,7 +46,7 @@ public class OrderServiceTests
         var idempotencyKey = Guid.NewGuid().ToString();
         var quantity = 2;
 
-        _orderRepository.GetByIdempotencyKeyAsync(idempotencyKey, Arg.Any<CancellationToken>())
+        _orderRepository.GetByIdempotencyKeyAsync(idempotencyKey, UserId, Arg.Any<CancellationToken>())
             .Returns((Order?)null);
         _ticketRepository.GetByIdAsync(TicketId, Arg.Any<CancellationToken>())
             .Returns(ticket);
@@ -87,7 +87,7 @@ public class OrderServiceTests
         var idempotencyKey = "duplicate-key-123";
         var existingOrder = Order.Create(UserId, TicketId, 1, 500m, idempotencyKey);
 
-        _orderRepository.GetByIdempotencyKeyAsync(idempotencyKey, Arg.Any<CancellationToken>())
+        _orderRepository.GetByIdempotencyKeyAsync(idempotencyKey, UserId, Arg.Any<CancellationToken>())
             .Returns(existingOrder);
 
         // Act
@@ -124,7 +124,7 @@ public class OrderServiceTests
         Assert.Equal(10, ex.MaxQuantity);
 
         // 不應該觸發任何 repository 或 publisher 呼叫
-        await _orderRepository.DidNotReceive().GetByIdempotencyKeyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _orderRepository.DidNotReceive().GetByIdempotencyKeyAsync(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
         await _ticketRepository.DidNotReceive().GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
         await _messagePublisher.DidNotReceive().PublishOrderCreatedAsync(
             Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
@@ -140,7 +140,7 @@ public class OrderServiceTests
         var idempotencyKey = Guid.NewGuid().ToString();
         var nonExistentTicketId = Guid.NewGuid();
 
-        _orderRepository.GetByIdempotencyKeyAsync(idempotencyKey, Arg.Any<CancellationToken>())
+        _orderRepository.GetByIdempotencyKeyAsync(idempotencyKey, UserId, Arg.Any<CancellationToken>())
             .Returns((Order?)null);
         _ticketRepository.GetByIdAsync(nonExistentTicketId, Arg.Any<CancellationToken>())
             .Returns((Ticket?)null);
@@ -171,7 +171,7 @@ public class OrderServiceTests
         var ticket = MakeTicket(price: price);
         var idempotencyKey = Guid.NewGuid().ToString();
 
-        _orderRepository.GetByIdempotencyKeyAsync(idempotencyKey, Arg.Any<CancellationToken>())
+        _orderRepository.GetByIdempotencyKeyAsync(idempotencyKey, UserId, Arg.Any<CancellationToken>())
             .Returns((Order?)null);
         _ticketRepository.GetByIdAsync(TicketId, Arg.Any<CancellationToken>())
             .Returns(ticket);
