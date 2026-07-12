@@ -17,8 +17,8 @@
 
 | 順序 | 分支名稱 | 做什麼 | 為什麼是這個順序 | 涵蓋規格 | 狀態 |
 |---|---|---|---|---|---|
-| 1 | `feature/tickets-read` | `TicketRepository` + `TicketService` + `TicketsController`，實作 `GET /tickets`、`GET /tickets/{id}`（**不加 Redis、不需要 JWT**） | 全系統複雜度最低的功能，先證明 DB → EF Core → Controller → JSON 回應這條路完全通了 | `docs/3_specs/api-spec.yaml` (Tickets 區塊)、`docs/3_specs/data-model.md` (tickets 表) | ⬜ |
-| 2 | `feature/tickets-unit-test` | 幫 `TicketService` 補 Unit Test（NSubstitute mock `ITicketRepository`） | 第一次真的把 CI 跑起來看綠燈，建立「寫完功能就補測試」的習慣，分開一個小分支練習 PR 流程 | `test-plan.md` 第 1 節（雖然該節主要針對 Order，但此處練習測試框架設置） | ⬜ |
+| 1 | `feature/tickets-read` | `TicketRepository` + `TicketService` + `TicketsController`，實作 `GET /tickets`、`GET /tickets/{id}`（**不加 Redis、不需要 JWT**） | 全系統複雜度最低的功能，先證明 DB → EF Core → Controller → JSON 回應這條路完全通了 | `docs/3_specs/api-spec.yaml` (Tickets 區塊)、`docs/3_specs/data-model.md` (tickets 表) | ✅ |
+| 2 | `feature/tickets-unit-test` | 幫 `TicketService` 補 Unit Test（NSubstitute mock `ITicketRepository`） | 第一次真的把 CI 跑起來看綠燈，建立「寫完功能就補測試」的習慣，分開一個小分支練習 PR 流程 | `test-plan.md` 第 1 節（雖然該節主要針對 Order，但此處練習測試框架設置） | ✅ |
 | 3 | `feature/auth` | 註冊 / 登入 / JWT 簽發，`AuthController` + `AuthService` + `IPasswordHasher` | Orders 需要 JWT 才能建立訂單，必須先做完認證；Admin 功能也依賴 role claim | `docs/3_specs/api-spec.yaml` (Auth 區塊)、`docs/3_specs/data-model.md` (users 表)、`docs/4_adr/005` (RBAC) | ⬜ |
 | 4 | `feature/orders-create` | `POST /orders`（建立訂單，狀態固定 `Pending`）+ idempotency key 檢查 + 發布訊息到 RabbitMQ + `GET /orders/{id}` 查詢單筆訂單 | 這一步先讓「建立訂單」這個動作能跑，還不涉及樂觀鎖與庫存扣減，消息送到 MQ 即完成 | `docs/3_specs/api-spec.yaml` (Orders 區塊)、`docs/3_specs/message-contracts.md`、`docs/3_specs/data-model.md` (orders 表) | ⬜ |
 | 5 | `feature/orders-worker` | `BackgroundService` 消費訊息、樂觀鎖 CAS 扣庫存、`Order.TransitionTo()`、寫 `OrderStatusLog`、技術失敗 nack / 業務失敗 ack / DLQ 設定 | 全系統最核心也最複雜的部分，前面地基都穩了才處理這塊 | `docs/3_specs/domain-state-machine.md`、`docs/3_specs/message-contracts.md`、`docs/3_specs/data-model.md` (tickets.version、order_status_logs)、`docs/4_adr/003` | ⬜ |
