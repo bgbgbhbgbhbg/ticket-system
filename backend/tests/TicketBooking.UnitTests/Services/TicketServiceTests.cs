@@ -26,14 +26,14 @@ public class TicketServiceTests
             Ticket.Create(
                 "VIP 區前排",
                 "五月天演唱會 2026 台北站",
-                DateTime.Parse("2026-08-15 19:00:00"),
+                new DateTime(2026, 8, 15, 19, 0, 0),
                 100,
                 3500.00m
             ),
             Ticket.Create(
                 "搖滾區站票",
                 "五月天演唱會 2026 台北站",
-                DateTime.Parse("2026-08-15 19:00:00"),
+                new DateTime(2026, 8, 15, 19, 0, 0),
                 500,
                 2000.00m
             )
@@ -79,7 +79,7 @@ public class TicketServiceTests
         var expectedTicket = Ticket.Create(
             "VIP 區前排",
             "五月天演唱會 2026 台北站",
-            DateTime.Parse("2026-08-15 19:00:00"),
+            new DateTime(2026, 8, 15, 19, 0, 0),
             100,
             3500.00m
         );
@@ -124,7 +124,7 @@ public class TicketServiceTests
         var expectedTicket = Ticket.Create(
             "搖滾區站票",
             "五月天演唱會 2026 台北站",
-            DateTime.Parse("2026-08-15 19:00:00"),
+            new DateTime(2026, 8, 15, 19, 0, 0),
             500,
             2000.00m
         );
