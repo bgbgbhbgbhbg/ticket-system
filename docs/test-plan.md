@@ -21,14 +21,14 @@
 
 | 測試案例 | 對應規則 | 狀態 |
 |---|---|---|
-| Pending → Processing 合法轉換成功 | 合法轉換表 | ⬜ |
-| Processing → Success 當庫存足夠 | 合法轉換表 | ⬜ |
-| Processing → Failed 當庫存不足 | 合法轉換表 | ⬜ |
-| Processing → Failed 當樂觀鎖重試超過 3 次 | 重試邏輯 | ⬜ |
-| Success → 任何狀態 應拋出例外(終態不可逆) | 不允許的轉換 | ⬜ |
-| Failed → 任何狀態 應拋出例外(終態不可逆) | 不允許的轉換 | ⬜ |
-| Pending → Success 跳級應拋出例外 | 不允許的轉換 | ⬜ |
-| 每次合法轉換都應寫入 order_status_logs 一筆紀錄 | 狀態機第 5 節 | ⬜ |
+| Pending → Processing 合法轉換成功 | 合法轉換表 | ✅ |
+| Processing → Success 當庫存足夠 | 合法轉換表 | ✅ |
+| Processing → Failed 當庫存不足 | 合法轉換表 | ✅ |
+| Processing → Failed 當樂觀鎖重試超過 3 次 | 重試邏輯 | ✅ |
+| Success → 任何狀態 應拋出例外(終態不可逆) | 不允許的轉換 | ✅ |
+| Failed → 任何狀態 應拋出例外(終態不可逆) | 不允許的轉換 | ✅ |
+| Pending → Success 跳級應拋出例外 | 不允許的轉換 | ✅ |
+| 每次合法轉換都應寫入 order_status_logs 一筆紀錄 | 狀態機第 5 節 | ✅ |
 
 ---
 
@@ -36,8 +36,8 @@
 
 | 測試案例 | 對應規則 | 狀態 |
 |---|---|---|
-| 樂觀鎖 CAS SQL:兩個並發請求同時扣庫存,只有一個成功 | data-model.md 2.2 節 | ⬜ |
-| `available_quantity` 不會扣成負數(CHECK constraint 生效) | data-model.md 2.2 節 | ⬜ |
+| 樂觀鎖 CAS SQL:兩個並發請求同時扣庫存,只有一個成功 | data-model.md 2.2 節 | ✅ |
+| `available_quantity` 不會扣成負數(CHECK constraint 生效) | data-model.md 2.2 節 | ✅ |
 | 相同 `idempotency_key` 送兩次請求,只建立一筆訂單 | data-model.md 2.3 節 | ⬜ |
 | `total_amount` 在票價異動後,舊訂單金額不變(快照特性) | data-model.md 2.3 節 | ⬜ |
 
@@ -62,8 +62,8 @@
 
 | 測試案例 | 狀態 |
 |---|---|
-| BackgroundService 消費 `order.created` 後正確扣減庫存 | ⬜ |
-| 業務失敗(庫存不足)應 ack 訊息,不重新投遞 | ⬜ |
+| BackgroundService 消費 `order.created` 後正確扣減庫存 | ✅ |
+| 業務失敗(庫存不足)應 ack 訊息,不重新投遞 | ✅ |
 | 技術性失敗(模擬 DB 斷線)應 nack,訊息重新投遞 | ⬜ |
 | 重新投遞達 3 次仍失敗,訊息進入 DLQ | ⬜ |
 

@@ -100,8 +100,13 @@ builder.Services.AddScoped<TicketBooking.Application.Interfaces.Repositories.IOr
     TicketBooking.Infrastructure.Repositories.OrderRepository>();
 builder.Services.AddScoped<TicketBooking.Application.Interfaces.Services.IOrderService,
     TicketBooking.Application.Services.OrderService>();
+builder.Services.AddScoped<TicketBooking.Application.Interfaces.Services.IOrderProcessingService,
+    TicketBooking.Application.Services.OrderProcessingService>();
 builder.Services.AddScoped<TicketBooking.Application.Interfaces.IMessagePublisher,
     TicketBooking.Infrastructure.Messaging.RabbitMqPublisher>();
+
+// BackgroundService：消費 RabbitMQ order.processing.queue
+builder.Services.AddHostedService<TicketBooking.Infrastructure.Messaging.OrderProcessingWorker>();
 
 var app = builder.Build();
 
