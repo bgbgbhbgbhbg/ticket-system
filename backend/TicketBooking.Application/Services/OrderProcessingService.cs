@@ -42,14 +42,29 @@ public class OrderProcessingService : IOrderProcessingService
             return; // 業務上的異常（訊息裡的 orderId 找不到），ack 掉避免無限重試
         }
 
-        // ── 2. Pending → Processing ─────────────────────────────────────────
-        var fromStatus = order.Status;
-        order.TransitionTo(OrderStatus.Processing, "worker_picked_up");
-        var processingLog = OrderStatusLog.Create(
-            order.Id, fromStatus, OrderStatus.Processing, "worker_picked_up");
-        await _orderRepository.UpdateAndAddStatusLogAsync(order, processingLog, cancellationToken);
+        // ── 冪等性保護：訊息重投遞時訂單可能已是終態或已進入 Processing ───────
+        // Success / Failed → 已處理完，直接 return（worker ack 即可）
+        if (order.Status is OrderStatus.Success or OrderStatus.Failed)
+        {
+            _logger.LogInformation("Order {OrderId} 已是終態 {Status}，跳過重複處理", orderId, order.Status);
+            return;
+        }
 
-        _logger.LogInformation("Order {OrderId} 進入 Processing 狀態", orderId);
+        // ── 2. Pending → Processing（已是 Processing 則略過轉換，直接繼續扣庫存） ─
+        if (order.Status == OrderStatus.Pending)
+        {
+            var fromStatus = order.Status;
+            order.TransitionTo(OrderStatus.Processing, "worker_picked_up");
+            var processingLog = OrderStatusLog.Create(
+                order.Id, fromStatus, OrderStatus.Processing, "worker_picked_up");
+            await _orderRepository.UpdateAndAddStatusLogAsync(order, processingLog, cancellationToken);
+            _logger.LogInformation("Order {OrderId} 進入 Processing 狀態", orderId);
+        }
+        else
+        {
+            // 已是 Processing（訊息重投遞），跳過 Pending→Processing 轉換
+            _logger.LogInformation("Order {OrderId} 已是 Processing，跳過重複轉換直接繼續扣庫存", orderId);
+        }
 
         // ── 3. 樂觀鎖 CAS 重試迴圈 ──────────────────────────────────────────
         var retryCount = 0;

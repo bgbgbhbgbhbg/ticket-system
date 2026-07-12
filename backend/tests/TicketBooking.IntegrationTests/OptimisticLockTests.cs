@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Testcontainers.PostgreSql;
 using TicketBooking.Application.Services;
 using TicketBooking.Domain.Entities;
 using TicketBooking.Domain.Enums;
@@ -16,33 +15,30 @@ namespace TicketBooking.IntegrationTests;
 [Collection("OptimisticLock")]
 public class OptimisticLockTests : IAsyncLifetime
 {
-    // PostgreSQL 18（與 docker-compose.yml 一致，才有 uuidv7() 函式）
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
-        .WithImage("postgres:18")
-        .Build();
-
+    private readonly PostgreSqlFixture _fixture;
     private AppDbContext _dbContext = null!;
 
-    // ── 生命週期 ─────────────────────────────────────────────────────────────
-
-    public async Task InitializeAsync()
+    public OptimisticLockTests(PostgreSqlFixture fixture)
     {
-        await _postgres.StartAsync();
+        _fixture = fixture;
+    }
 
+    // ── 生命週期 ─────────────────────────────────────────────────────────────
+    // Container 由 PostgreSqlFixture 統一管理（整個 Collection 啟動一次）；
+    // 此處僅建立每個測試專用的 DbContext。
+
+    public Task InitializeAsync()
+    {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(_fixture.ConnectionString)
             .Options;
-
         _dbContext = new AppDbContext(options);
-
-        // 執行所有 EF Core migrations（建立完整的 schema，包含 CHECK constraint 與 uuidv7 default）
-        await _dbContext.Database.MigrateAsync();
+        return Task.CompletedTask;
     }
 
     public async Task DisposeAsync()
     {
         await _dbContext.DisposeAsync();
-        await _postgres.DisposeAsync();
     }
 
     // ── 輔助：建立測試用 TicketRepository ────────────────────────────────────
@@ -63,10 +59,9 @@ public class OptimisticLockTests : IAsyncLifetime
         var ticketId = ticket.Id;
         var version = ticket.Version; // 應為 0
 
-        // Act：兩個 task 同時嘗試扣庫存（使用同一個 DbContext scope，模擬 race condition）
-        // 使用獨立的 DbContext 避免 EF Core change tracking 干擾並發讀取
+        // Act：使用獨立的 DbContext 避免 EF Core change tracking 干擾並發讀取
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(_fixture.ConnectionString)
             .Options;
 
         var task1 = Task.Run(async () =>
@@ -112,18 +107,22 @@ public class OptimisticLockTests : IAsyncLifetime
         await _dbContext.SaveChangesAsync();
 
         var ticketId = ticket.Id;
-        var initialVersion = ticket.Version;
 
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(_fixture.ConnectionString)
             .Options;
 
-        // Act：10 個並發請求，全部用 version=0（同一版本搶扣）
+        // Act：10 個並發請求，各自讀取當前 version 後再做 CAS（模擬真實應用程式 read-then-deduct 行為）
+        // 這樣才能測試「庫存有 2，10 個人搶，最多 2 個成功」的情境；
+        // 若全部用同一個 initialVersion，CAS 只允許 1 個成功，無法驗證庫存上限為 2 的場景。
         var tasks = Enumerable.Range(0, 10).Select(_ => Task.Run(async () =>
         {
             using var ctx = new AppDbContext(options);
             var repo = new TicketRepository(ctx);
-            return await repo.TryDeductInventoryAsync(ticketId, 1, initialVersion);
+            // 讀取最新 version（不同 task 可能讀到相同或不同版本，視排程而定）
+            var current = await ctx.Tickets.AsNoTracking().FirstAsync(t => t.Id == ticketId);
+            if (current.AvailableQuantity <= 0) return 0;
+            return await repo.TryDeductInventoryAsync(ticketId, 1, current.Version);
         })).ToArray();
 
         var results = await Task.WhenAll(tasks);
@@ -131,11 +130,11 @@ public class OptimisticLockTests : IAsyncLifetime
         // Assert
         var successCount = results.Count(r => r == 1);
 
-        // 最多只能有 2 筆成功（庫存只有 2）
+        // 庫存為 2，最多只能有 2 筆成功
         Assert.True(successCount <= 2,
             $"成功筆數 {successCount} 超過庫存上限 2，表示發生超賣");
 
-        // available_quantity 不能是負數
+        // available_quantity 不能是負數，且必須等於 2 - successCount（確保 CAS 計數一致）
         using var checkCtx = new AppDbContext(options);
         var updatedTicket = await checkCtx.Tickets
             .AsNoTracking()
@@ -144,6 +143,7 @@ public class OptimisticLockTests : IAsyncLifetime
         Assert.NotNull(updatedTicket);
         Assert.True(updatedTicket.AvailableQuantity >= 0,
             $"available_quantity = {updatedTicket.AvailableQuantity}，超賣發生！");
+        Assert.Equal(2 - successCount, updatedTicket.AvailableQuantity);
     }
 
     // ── IT-OPT-03: 完整流程 — ProcessOrderAsync 成功路徑 ─────────────────────
@@ -171,7 +171,7 @@ public class OptimisticLockTests : IAsyncLifetime
 
         // 建立 Service（使用獨立的 scoped context）
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(_fixture.ConnectionString)
             .Options;
 
         using var serviceCtx = new AppDbContext(options);
@@ -229,7 +229,7 @@ public class OptimisticLockTests : IAsyncLifetime
         var orderId = order.Id;
 
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(_fixture.ConnectionString)
             .Options;
 
         using var serviceCtx = new AppDbContext(options);
