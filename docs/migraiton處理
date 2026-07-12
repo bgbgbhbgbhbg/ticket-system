@@ -1,0 +1,7 @@
+dotnet ef migrations list
+
+Step 1：退回上一個正確的版本
+dotnet ef database update 0712 --project TicketBooking.Infrastructure --startup-project TicketBooking.Api
+
+Step 2：安全移除空的移轉檔案
+dotnet ef migrations remove --project TicketBooking.Infrastructure --startup-project TicketBooking.Api

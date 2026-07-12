@@ -67,6 +67,7 @@
 具體規則:
 
 - **依賴方向只能由外往內**:`TicketBooking.Api` → `TicketBooking.Infrastructure` → `TicketBooking.Application` → `TicketBooking.Domain`。`TicketBooking.Domain` **不可以**引用任何其他專案或第三方套件(EF Core、Redis client 等一律不能出現在 Domain 專案的 PackageReference)。
+- **Exception 分類規則**:只有從 Entity 自己的方法內部拋出、不需要查任何 Repository 或外部資源就能判斷的例外(如 `InvalidStatusTransitionException`,`Order.TransitionTo()` 內部憑自己的狀態就能判斷合不合法),才放 `TicketBooking.Domain/Exceptions/`。需要先查 Repository 才能判斷是否該拋出的例外(如 `EmailAlreadyExistsException` 要先查 DB 有沒有重複 email、`InvalidCredentialsException` 要先查密碼雜湊比對結果),代表這是一個 use case 執行失敗,一律放 `TicketBooking.Application/Exceptions/`。
 - **EF Core 設定用 Fluent API,不用 Data Annotations**(見 `docs/3_specs/data-model.md` 第 0.1 節)。Entity 上不要加 `[Key]`、`[Required]`、`[Column]` 這類 attribute,每個 Entity 對應一個 `IEntityTypeConfiguration<T>` 類別放在 `TicketBooking.Infrastructure/Persistence/Configurations/`。
 - **Entity 的 `Create()` factory method 裡,`Id` 屬性絕對不要指定 `Guid.NewGuid()`**,要保持 CLR 預設值(即不指定,或明確寫 `default`)。原因:所有表的 PK 都用資料庫端的 `uuidv7()` 產生(見 `docs/3_specs/data-model.md` 第 0 節),如果在 C# 端先塞一個 `Guid.NewGuid()`,EF Core 會判斷這個值「已經被明確指定」,直接把它寫進 INSERT 語句,完全繞過資料庫的 `uuidv7()` default,等於白白配置了但沒有生效。
 - **Entity 要帶行為,不要寫成貧血模型**(見 `docs/adr/006-ddd-lite-vs-3tier.md`)。例如 `Order` Entity 應該有 `TransitionTo(OrderStatus to, string reason)` method,內部檢查 `docs/3_specs/domain-state-machine.md` 定義的合法轉換表,不合法就拋 `InvalidStatusTransitionException`。**不要**把這個檢查邏輯寫在 `TicketBooking.Application` 的 Service 裡。
