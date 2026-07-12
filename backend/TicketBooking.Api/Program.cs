@@ -62,9 +62,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddControllers();
 
 // 註冊 Repository 和 Service (對應 AGENTS.md 第 2 節 Clean Architecture DI 組裝)
-builder.Services.AddScoped<TicketBooking.Application.Interfaces.Repositories.ITicketRepository, 
+builder.Services.AddScoped<TicketBooking.Application.Interfaces.Repositories.ITicketRepository,
     TicketBooking.Infrastructure.Repositories.TicketRepository>();
-builder.Services.AddScoped<TicketBooking.Application.Interfaces.Services.ITicketService, 
+builder.Services.AddScoped<TicketBooking.Application.Interfaces.Services.ITicketService,
     TicketBooking.Application.Services.TicketService>();
 
 var app = builder.Build();
@@ -76,43 +76,15 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-// 認證與授權中間件(順序很重要:認證 → 授權 → CORS)
-app.UseAuthentication();
-app.UseAuthorization();
-app.UseCors("Frontend");
-
-app.UseHttpsRedirection();
+app.UseHttpsRedirection(); // 1. 先確保連線安全（建議放在最前面）
+// middleware 順序:CORS 必須在 Authentication/Authorization 之前,
+// 否則之後 Orders 這類需要 JWT 的 endpoint,瀏覽器送出的 CORS 預檢請求(preflight OPTIONS)
+// 會在還沒驗證身份前就被卡住,而且錯誤訊息會誤導你以為是 CORS 設定錯,其實是順序錯
+app.UseCors("Frontend");   // 2. 先把 CORS 開大門，讓 OPTIONS 請求安全通過並拿到 Header
+app.UseAuthentication();   // 3. 檢查是誰來了（解析 JWT Token）
+app.UseAuthorization();    // 4. 檢查這個人有沒有權限
 
 // Map Controllers
-app.MapControllers();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-// 所有 API 放在 /api/v1 前綴下(對應 docs/adr/005-api-versioning-and-rbac.md)
-var apiGroup = app.MapGroup("/api/v1");
-
-// #sym:weatherforecast - 天氣預測端點(前端參考)
-apiGroup.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+app.MapControllers();      // 5. 最後才進入 Controller 執行業務邏輯
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
