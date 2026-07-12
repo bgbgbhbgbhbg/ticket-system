@@ -1,0 +1,24 @@
+using TicketBooking.Domain.Entities;
+
+namespace TicketBooking.Application.Interfaces.Repositories;
+
+/// <summary>
+/// Order 資料存取 Interface，遵循 Repository Pattern
+/// </summary>
+public interface IOrderRepository
+{
+    /// <summary>
+    /// 依 ID 查詢訂單（不限使用者，供內部使用）
+    /// </summary>
+    Task<Order?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 依 idempotency_key 查詢訂單（冪等性檢查用）
+    /// </summary>
+    Task<Order?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 建立新訂單，回傳資料庫產生 Id 後的完整物件
+    /// </summary>
+    Task<Order> CreateAsync(Order order, CancellationToken cancellationToken = default);
+}

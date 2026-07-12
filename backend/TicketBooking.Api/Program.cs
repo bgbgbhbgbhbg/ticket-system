@@ -95,6 +95,14 @@ builder.Services.AddScoped<TicketBooking.Application.Interfaces.Services.IAuthSe
 builder.Services.AddScoped<TicketBooking.Application.Interfaces.Security.IPasswordHasher,
     TicketBooking.Infrastructure.Security.PasswordHasher>();
 
+// Orders 相關服務
+builder.Services.AddScoped<TicketBooking.Application.Interfaces.Repositories.IOrderRepository,
+    TicketBooking.Infrastructure.Repositories.OrderRepository>();
+builder.Services.AddScoped<TicketBooking.Application.Interfaces.Services.IOrderService,
+    TicketBooking.Application.Services.OrderService>();
+builder.Services.AddScoped<TicketBooking.Application.Interfaces.IMessagePublisher,
+    TicketBooking.Infrastructure.Messaging.RabbitMqPublisher>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

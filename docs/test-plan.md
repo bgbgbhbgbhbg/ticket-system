@@ -4,7 +4,20 @@
 
 ---
 
-## 1. 單元測試(Unit Test)— 對應 `docs/3_specs/domain-state-machine.md`
+## 1.5 單元測試 — OrderService（Task 4）
+
+| 測試案例編號 | 測試案例 | 狀態 |
+|---|---|---|
+| UT-ORD-01 | 正常建立訂單：Order.Create() factory method、TotalAmount = quantity × price、狀態 Pending、發送 MQ 訊息 | ✅ |
+| UT-ORD-02 | Idempotency-Key 重複：回傳原訂單（IsNew = false），不呼叫 ticket repo / order create / publisher | ✅ |
+| UT-ORD-03 | quantity 超過 10：拋出 OrderQuantityExceedsLimitException，不觸發任何 I/O | ✅ |
+| UT-ORD-04 | ticketId 查無此票券：拋出 TicketNotFoundException | ✅ |
+| UT-ORD-05 | TotalAmount 快照：quantity × ticket.Price 計算正確（多組數據） | ✅ |
+| UT-ORD-06 | GetOrderByIdAsync 正常查詢屬於自己的訂單 | ✅ |
+| UT-ORD-07 | GetOrderByIdAsync 訂單屬於其他使用者 → 回傳 null | ✅ |
+| UT-ORD-08 | GetOrderByIdAsync 訂單不存在 → 回傳 null | ✅ |
+
+
 
 | 測試案例 | 對應規則 | 狀態 |
 |---|---|---|
@@ -36,10 +49,10 @@
 |---|---|---|---|
 | 註冊重複 email | `POST /auth/register` | `AUTH_EMAIL_ALREADY_EXISTS` | ⬜ |
 | 登入密碼錯誤 | `POST /auth/login` | `AUTH_INVALID_CREDENTIALS` | ⬜ |
-| 未帶 JWT 呼叫 `/orders` | `POST /orders` | 401 | ⬜ |
+| 未帶 JWT 呼叫 `/orders` | `POST /orders` | 401 | ✅ |
 | 一般 User 呼叫 `/admin/orders` | `GET /admin/orders` | `AUTH_INSUFFICIENT_ROLE` | ⬜ |
 | Admin 呼叫 `/admin/orders` 正常回傳分頁清單 | `GET /admin/orders` | — | ⬜ |
-| 下單數量超過 10 | `POST /orders` | `ORDER_QUANTITY_EXCEEDS_LIMIT` | ⬜ |
+| 下單數量超過 10 | `POST /orders` | `ORDER_QUANTITY_EXCEEDS_LIMIT` | ✅ |
 | Admin 嘗試把 Success 訂單改成 Failed | `PATCH /admin/orders/{id}/status` | `ORDER_INVALID_STATUS_TRANSITION` | ⬜ |
 | `/health` 在 Redis 斷線時回傳 Degraded | `GET /health` | — | ⬜ |
 
