@@ -37,8 +37,9 @@ public class OrderService : IOrderService
             throw new OrderQuantityExceedsLimitException(quantity, MaxQuantityPerOrder);
         }
 
-        // 2. Idempotency-Key 檢查：已存在就直接回傳原本的訂單（冪等語意，不是錯誤）
-        var existingOrder = await _orderRepository.GetByIdempotencyKeyAsync(idempotencyKey, cancellationToken);
+        // 2. Idempotency-Key 檢查：以 (userId + idempotencyKey) 複合查詢，已存在就回傳原訂單。
+        //    不同 userId 查不到，防止跨用戶授權繞過（第三方用相同 key 不會返回屬於其他使用者的訂單資料）
+        var existingOrder = await _orderRepository.GetByIdempotencyKeyAsync(idempotencyKey, userId, cancellationToken);
         if (existingOrder is not null)
         {
             return (existingOrder, false);

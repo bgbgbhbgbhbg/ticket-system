@@ -13,9 +13,10 @@ public interface IOrderRepository
     Task<Order?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 依 idempotency_key 查詢訂單（冪等性檢查用）
+    /// 依 idempotency_key 與 userId 查詢訂單（冪等性檢查）
+    /// 複合查詢防止跨用戶授權繞過：不同 userId 不會返回對方的訂單
     /// </summary>
-    Task<Order?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default);
+    Task<Order?> GetByIdempotencyKeyAsync(string idempotencyKey, Guid userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 建立新訂單，回傳資料庫產生 Id 後的完整物件

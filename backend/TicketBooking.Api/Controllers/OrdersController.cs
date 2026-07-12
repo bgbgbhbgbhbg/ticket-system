@@ -42,6 +42,17 @@ public class OrdersController : ControllerBase
             });
         }
 
+        // TicketId 是 Guid value type，[Required] 無法攔截未提供欄位（會是 Guid.Empty）
+        if (request.TicketId == Guid.Empty)
+        {
+            return UnprocessableEntity(new ErrorResponse
+            {
+                ErrorCode = "VALIDATION_ERROR",
+                Message = "ticketId 為必填欄位",
+                TraceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier
+            });
+        }
+
         // userId 從 JWT sub claim 取得，防止使用者代替別人下單
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!Guid.TryParse(userIdClaim, out var userId))
@@ -65,8 +76,10 @@ public class OrdersController : ControllerBase
 
             var response = MapToResponse(order);
 
-            // 不管是新建還是冪等重複，都回傳 202 Accepted
-            return StatusCode(StatusCodes.Status202Accepted, response);
+            // 新訂單 → 202 Accepted；重複 Idempotency-Key → 409 Conflict（回傳原訂單，對應 api-spec.yaml 定義）
+            return isNew
+                ? StatusCode(StatusCodes.Status202Accepted, response)
+                : StatusCode(StatusCodes.Status409Conflict, response);
         }
         catch (OrderQuantityExceedsLimitException ex)
         {

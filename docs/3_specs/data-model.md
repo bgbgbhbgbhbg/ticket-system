@@ -167,14 +167,14 @@ WHERE id = :ticket_id
 | quantity | int | NOT NULL, `CHECK (quantity > 0)` | 購買數量 |
 | total_amount | numeric(10,2) | NOT NULL | quantity × price(下單當下快照,避免票價異動影響已建立訂單) |
 | status | varchar(20) | NOT NULL, default `'Pending'` | 見狀態機文件 |
-| idempotency_key | varchar(100) | UNIQUE, NOT NULL | 防止使用者重複點擊送出重複訂單 |
+| idempotency_key | varchar(100) | NOT NULL | 與 user_id 組成複合 UNIQUE（同一用戶不能重複相同 key） |
 | created_at | timestamptz | NOT NULL, default now() | |
 | updated_at | timestamptz | NOT NULL, default now() | |
 
 **索引**:
 - `INDEX idx_orders_user_id ON orders(user_id)`
 - `INDEX idx_orders_ticket_id ON orders(ticket_id)`
-- `UNIQUE INDEX idx_orders_idempotency_key ON orders(idempotency_key)`
+- `UNIQUE INDEX idx_orders_user_idempotency_key ON orders(user_id, idempotency_key)` — 複合 unique，同一使用者不能重複相同 key，但不同使用者可以有相同 UUID（防止跨用戶授權繞過）
 
 **status 允許值**(對應狀態機):
 `Pending` → `Processing` → `Success` | `Failed`

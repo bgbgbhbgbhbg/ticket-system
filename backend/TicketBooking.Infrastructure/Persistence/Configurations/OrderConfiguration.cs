@@ -65,9 +65,10 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasColumnName("idempotency_key")
             .HasColumnType("varchar(100)")
             .IsRequired();
-        builder.HasIndex(o => o.IdempotencyKey)
+        // 複合 unique 索引：同一使用者不能重複相同 key，不同使用者可以有相同 UUID（防止跨用戶授權繞過）
+        builder.HasIndex(o => new { o.UserId, o.IdempotencyKey })
             .IsUnique()
-            .HasDatabaseName("idx_orders_idempotency_key");
+            .HasDatabaseName("idx_orders_user_idempotency_key");
 
         builder.Property(o => o.CreatedAt)
             .HasColumnName("created_at")
