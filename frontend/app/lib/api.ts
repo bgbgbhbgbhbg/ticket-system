@@ -4,17 +4,10 @@
  * #sym:weatherforecast - WeatherForecast 端點標識符
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5263/api';
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL + '/api' : 'http://localhost:5263/api');
 const API_VERSION = 'v1';
 
 export const API_ENDPOINTS = {
-  // #sym:weatherforecast - 天氣預測端點
-  weatherforecast: {
-    path: `/weatherforecast`,
-    method: 'GET',
-    name: 'GetWeatherForecast',
-    fullUrl: `${API_BASE_URL}/api/${API_VERSION}/weatherforecast`,
-  },
   // Task 1: Tickets endpoints
   tickets: {
     list: {
@@ -43,11 +36,6 @@ export interface Ticket {
 }
 
 export const apiClient = {
-  /**
-   * 呼叫天氣預測 API
-   * @returns 天氣預測資料陣列
-   */
-  async getWeatherForecast() {
 
   /**
    * 取得所有票券列表
@@ -88,21 +76,4 @@ export const apiClient = {
 
     return response.json();
   },
-    const response = await fetch(API_ENDPOINTS.weatherforecast.fullUrl);
-    
-    if (!response.ok) {
-      throw new Error(
-        `API Error: ${response.status} ${response.statusText} - ${API_ENDPOINTS.weatherforecast.name}`
-      );
-    }
-
-    return response.json();
-  },
-};
-
-export type WeatherForecast = {
-  date: string;
-  temperatureC: number;
-  temperatureF: number;
-  summary: string;
 };
