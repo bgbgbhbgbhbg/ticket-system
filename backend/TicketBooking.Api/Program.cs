@@ -58,6 +58,15 @@ if (string.IsNullOrEmpty(connectionString))
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+// 註冊 Controllers
+builder.Services.AddControllers();
+
+// 註冊 Repository 和 Service (對應 AGENTS.md 第 2 節 Clean Architecture DI 組裝)
+builder.Services.AddScoped<TicketBooking.Application.Interfaces.Repositories.ITicketRepository, 
+    TicketBooking.Infrastructure.Repositories.TicketRepository>();
+builder.Services.AddScoped<TicketBooking.Application.Interfaces.Services.ITicketService, 
+    TicketBooking.Application.Services.TicketService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -73,6 +82,9 @@ app.UseAuthorization();
 app.UseCors("Frontend");
 
 app.UseHttpsRedirection();
+
+// Map Controllers
+app.MapControllers();
 
 var summaries = new[]
 {
