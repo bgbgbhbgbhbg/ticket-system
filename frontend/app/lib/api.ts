@@ -2,8 +2,7 @@
  * API 端點配置
  */
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL + '/api' : 'http://localhost:5263/api');
-const API_VERSION = 'v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5263/api/v1';
 
 export const API_ENDPOINTS = {
   // Task 1: Tickets endpoints
@@ -12,13 +11,13 @@ export const API_ENDPOINTS = {
       path: `/tickets`,
       method: 'GET',
       name: 'GetTickets',
-      fullUrl: `${API_BASE_URL}/${API_VERSION}/tickets`,
+      fullUrl: `${API_BASE_URL}/tickets`,
     },
     detail: (id: string) => ({
       path: `/tickets/${id}`,
       method: 'GET',
       name: 'GetTicketById',
-      fullUrl: `${API_BASE_URL}/${API_VERSION}/tickets/${id}`,
+      fullUrl: `${API_BASE_URL}/tickets/${id}`,
     }),
   },
 } as const;
