@@ -264,17 +264,21 @@ public class OrderProcessingServiceTests
         _orderRepository.GetByIdAsync(OrderId, Arg.Any<CancellationToken>()).Returns(order);
         _ticketRepository.GetByIdNoTrackingAsync(TicketId, Arg.Any<CancellationToken>()).Returns(ticket);
 
+        // 使用 When/Do 正確擷取每次呼叫的 OrderStatusLog（最後一次為 Failed log）
         OrderStatusLog? capturedFailLog = null;
-        await _orderRepository.UpdateAndAddStatusLogAsync(
-            Arg.Any<Order>(),
-            Arg.Do<OrderStatusLog>(l => capturedFailLog = l),
-            Arg.Any<CancellationToken>());
+        _orderRepository
+            .When(r => r.UpdateAndAddStatusLogAsync(
+                Arg.Any<Order>(),
+                Arg.Any<OrderStatusLog>(),
+                Arg.Any<CancellationToken>()))
+            .Do(callInfo => capturedFailLog = callInfo.Arg<OrderStatusLog>());
 
         // Act
         await _sut.ProcessOrderAsync(OrderId);
 
-        // Assert: 最後一個 log 的 FromStatus 應該是 Processing
+        // Assert: 最後一個 log 為 Failed log，且 FromStatus 應為 Processing
         Assert.NotNull(capturedFailLog);
         Assert.Equal(OrderStatus.Failed, capturedFailLog.ToStatus);
+        Assert.Equal(OrderStatus.Processing, capturedFailLog.FromStatus);
     }
 }

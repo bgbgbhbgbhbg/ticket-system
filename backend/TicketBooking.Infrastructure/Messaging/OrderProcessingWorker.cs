@@ -69,8 +69,19 @@ public class OrderProcessingWorker : BackgroundService
 
                 _logger.LogInformation("OrderProcessingWorker 開始消費 order.processing.queue");
 
-                // 保持 channel 存活，直到 stoppingToken 或連線中斷
-                await Task.Delay(Timeout.Infinite, stoppingToken);
+                // 建立連線中斷感知的 CancellationToken：
+                // 若 broker 在 stoppingToken 取消之前斷線，connectionCts 被取消，
+                // Task.Delay 拋出 OperationCanceledException → 進入重連流程。
+                // （若只用 stoppingToken，broker 斷線後 Task.Delay 永遠不會結束）
+                using var connectionCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                connection.ConnectionShutdownAsync += (_, _) =>
+                {
+                    _logger.LogWarning("RabbitMQ 連線中斷，觸發重連");
+                    connectionCts.Cancel();
+                    return Task.CompletedTask;
+                };
+
+                await Task.Delay(Timeout.Infinite, connectionCts.Token);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -117,17 +128,27 @@ public class OrderProcessingWorker : BackgroundService
             await channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
             _logger.LogInformation("Order {OrderId} 處理完成，ack", orderId);
         }
+        catch (JsonException ex)
+        {
+            // 訊息格式錯誤（poison message）→ ack 丟棄，避免 requeue 後的無限重試
+            _logger.LogError(ex, "收到格式錯誤的訊息（delivery tag {Tag}），直接 ack 丟棄", ea.DeliveryTag);
+            await channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
+        }
         catch (NpgsqlException ex)
         {
-            // 技術性失敗（DB 連線中斷等基礎設施例外）→ nack，讓 RabbitMQ 重新投遞
-            _logger.LogError(ex, "Order {OrderId} 處理時發生 DB 例外，nack", orderId);
-            await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true);
+            // 技術性失敗（DB 連線中斷等基礎設施例外）→ nack
+            // 首次投遞（Redelivered=false）→ requeue:true 給一次重試機會
+            // 再次投遞（Redelivered=true）→ requeue:false 送往 DLQ，避免無限循環
+            var requeue = !ea.Redelivered;
+            _logger.LogError(ex, "Order {OrderId} DB 例外，nack(requeue={Requeue})", orderId, requeue);
+            await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: requeue);
         }
         catch (Exception ex)
         {
-            // 其他未預期例外 → nack，讓 RabbitMQ 重新投遞
-            _logger.LogError(ex, "Order {OrderId} 處理時發生未預期例外，nack", orderId);
-            await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true);
+            // 其他未預期例外（同上）
+            var requeue = !ea.Redelivered;
+            _logger.LogError(ex, "Order {OrderId} 未預期例外，nack(requeue={Requeue})", orderId, requeue);
+            await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: requeue);
         }
     }
 
