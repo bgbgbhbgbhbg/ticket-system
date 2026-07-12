@@ -1,3 +1,4 @@
+namespace TicketBooking.Api.Dtos;
 public class ErrorResponse
 {
     public string ErrorCode { get; set; } = null!;

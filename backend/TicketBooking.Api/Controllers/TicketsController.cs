@@ -52,7 +52,7 @@ public class TicketsController : ControllerBase
     /// </summary>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(TicketResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TicketResponse>> GetTicketById(Guid id, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Fetching ticket with ID: {TicketId}", id);

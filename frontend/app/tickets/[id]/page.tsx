@@ -1,11 +1,11 @@
 import TicketDetail from '@/app/components/TicketDetail';
 
-export default function TicketDetailPage({
+export default async function TicketDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = React.use(params);
+  const { id } = await params;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -24,6 +24,3 @@ export default function TicketDetailPage({
     </div>
   );
 }
-
-// React 18+ dynamic import
-import React from 'react';

@@ -1,7 +1,5 @@
 /**
  * API 端點配置
- * 對應後端的 Program.cs 中的路由定義
- * #sym:weatherforecast - WeatherForecast 端點標識符
  */
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL + '/api' : 'http://localhost:5263/api');
