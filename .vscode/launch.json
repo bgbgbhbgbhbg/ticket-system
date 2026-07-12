@@ -1,0 +1,41 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Frontend (npm run dev)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}/frontend",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "env": {
+        "NEXT_PUBLIC_API_URL": "http://localhost:5263/api/v1"
+      }
+    },
+    {
+      "name": "Backend (dotnet run)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/TicketBooking.Api/bin/Debug/net9.0/TicketBooking.Api.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/backend/TicketBooking.Api",
+      "stopAtEntry": false,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "env": {
+        "ASPNETCORE_URLS": "https://localhost:5263;http://localhost:5262",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "preLaunchTask": "build-backend"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack (Frontend + Backend)",
+      "configurations": ["Backend (dotnet run)", "Frontend (npm run dev)"],
+      "stopAll": true
+    }
+  ]
+}

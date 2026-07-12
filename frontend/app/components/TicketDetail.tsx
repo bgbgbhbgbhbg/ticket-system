@@ -171,6 +171,7 @@ export default function TicketDetail({ ticketId }: TicketDetailProps) {
                   min={1}
                   max={10}
                   value={quantity}
+                  style={{ color: "#000000" }}
                   onChange={(e) => setQuantity(Math.min(10, Math.max(1, parseInt(e.target.value) || 1)))}
                   className="w-24 border border-gray-300 rounded-md px-3 py-2 text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
