@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiClient, type Ticket } from '@/app/lib/api';
+import { apiClient, type Ticket, type ApiError } from '@/app/lib/api';
+import { useAuth } from '@/app/lib/auth-context';
 
 interface TicketDetailProps {
   ticketId: string;
@@ -10,9 +11,15 @@ interface TicketDetailProps {
 
 export default function TicketDetail({ ticketId }: TicketDetailProps) {
   const router = useRouter();
+  const { user, token } = useAuth();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 購票表單狀態
+  const [quantity, setQuantity] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadTicket() {
@@ -31,6 +38,38 @@ export default function TicketDetail({ ticketId }: TicketDetailProps) {
 
     loadTicket();
   }, [ticketId]);
+
+  async function handleOrder() {
+    if (!token || !ticket) return;
+
+    setSubmitting(true);
+    setOrderError(null);
+
+    // 每次點擊送出時產生新的 idempotency key，防止重複送出
+    const idempotencyKey = crypto.randomUUID();
+
+    try {
+      const order = await apiClient.createOrder(token, idempotencyKey, {
+        ticketId: ticket.id,
+        quantity,
+      });
+      // 下單成功，跳轉到訂單狀態頁
+      router.push(`/orders/${order.id}`);
+    } catch (err) {
+      const apiErr = err as ApiError;
+      if (apiErr?.errorCode === 'ORDER_QUANTITY_EXCEEDS_LIMIT') {
+        setOrderError('單筆最多購買 10 張');
+      } else if (apiErr?.errorCode === 'TICKET_NOT_FOUND') {
+        setOrderError('此票券不存在');
+      } else if (apiErr?.message) {
+        setOrderError(apiErr.message);
+      } else {
+        setOrderError('下單失敗，請稍後再試');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -96,8 +135,8 @@ export default function TicketDetail({ ticketId }: TicketDetailProps) {
           <div className="flex justify-between items-center">
             <span className="text-gray-600">剩餘票數</span>
             <span className={`text-lg font-semibold ${
-              ticket.availableQuantity > 50 ? 'text-green-600' : 
-              ticket.availableQuantity > 10 ? 'text-yellow-600' : 
+              ticket.availableQuantity > 50 ? 'text-green-600' :
+              ticket.availableQuantity > 10 ? 'text-yellow-600' :
               'text-red-600'
             }`}>
               {ticket.availableQuantity} 張
@@ -120,15 +159,68 @@ export default function TicketDetail({ ticketId }: TicketDetailProps) {
         </div>
 
         <div className="border-t border-gray-200 pt-6">
-          <button
-            disabled
-            className="w-full bg-gray-300 text-gray-500 py-3 px-6 rounded-lg font-semibold cursor-not-allowed"
-          >
-            登入後即可購票（Task 3 實作中）
-          </button>
-          <p className="mt-2 text-sm text-gray-500 text-center">
-            * 購票功能將在 Task 3 (Auth) 和 Task 4 (Orders) 完成後啟用
-          </p>
+          {user && token ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <label htmlFor="quantity" className="text-gray-700 font-medium whitespace-nowrap">
+                  購買數量
+                </label>
+                <input
+                  id="quantity"
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.min(10, Math.max(1, parseInt(e.target.value) || 1)))}
+                  className="w-24 border border-gray-300 rounded-md px-3 py-2 text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-gray-500 text-sm">（最多 10 張）</span>
+              </div>
+
+              <div className="flex justify-between items-center text-sm text-gray-600">
+                <span>小計</span>
+                <span className="font-semibold text-gray-900">
+                  NT$ {(ticket.price * quantity).toLocaleString()}
+                </span>
+              </div>
+
+              {orderError && (
+                <div className="bg-red-50 border border-red-200 rounded p-3">
+                  <p className="text-red-600 text-sm">{orderError}</p>
+                </div>
+              )}
+
+              <button
+                onClick={handleOrder}
+                disabled={submitting || ticket.availableQuantity === 0}
+                className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors ${
+                  submitting || ticket.availableQuantity === 0
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {submitting ? '處理中...' : ticket.availableQuantity === 0 ? '已售完' : '立即購票'}
+              </button>
+            </div>
+          ) : (
+            <div className="text-center space-y-3">
+              <button
+                onClick={() => router.push('/auth/login')}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold"
+              >
+                登入後購票
+              </button>
+              <p className="text-sm text-gray-500">
+                還沒有帳號？
+                <button
+                  onClick={() => router.push('/auth/register')}
+                  className="ml-1 text-blue-600 hover:underline"
+                >
+                  立即註冊
+                </button>
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
