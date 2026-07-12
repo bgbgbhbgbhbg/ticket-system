@@ -62,7 +62,12 @@ public class TicketsController : ControllerBase
         if (ticket == null)
         {
             _logger.LogWarning("Ticket not found: {TicketId}", id);
-            return NotFound(new { errorCode = "TICKET_NOT_FOUND", message = "找不到此票券" });
+            return NotFound(new ErrorResponse
+            { 
+                ErrorCode = "TICKET_NOT_FOUND", 
+                Message = "找不到此票券", 
+                TraceId = HttpContext.TraceIdentifier 
+            });
         }
 
         var response = new TicketResponse
