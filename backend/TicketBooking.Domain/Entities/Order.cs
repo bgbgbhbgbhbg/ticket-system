@@ -25,6 +25,13 @@ public class Order
     /// </summary>
     public static Order Create(Guid userId, Guid ticketId, int quantity, decimal totalAmount, string idempotencyKey)
     {
+        if (quantity <= 0)
+            throw new ArgumentOutOfRangeException(nameof(quantity), "quantity 必須大於 0。");
+        if (totalAmount < 0)
+            throw new ArgumentOutOfRangeException(nameof(totalAmount), "totalAmount 不可小於 0。");
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+            throw new ArgumentException("idempotencyKey 不可為空白。", nameof(idempotencyKey));
+
         var now = DateTime.UtcNow;
         return new Order
         {
@@ -49,6 +56,7 @@ public class Order
     /// </summary>
     public void TransitionTo(OrderStatus to, string reason)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
         if (!IsValidTransition(Status, to))
         {
             throw new InvalidStatusTransitionException(Status, to);
@@ -57,10 +65,7 @@ public class Order
         Status = to;
         UpdatedAt = DateTime.UtcNow;
 
-        // 呼叫端(Application 層的 OrderService)在同一個 transaction 裡,
-        // 再另外建立一筆 OrderStatusLog(fromStatus, to, reason)寫入 DB,
-        // Order Entity 本身不負責寫 log,只負責狀態合法性檢查,避免 Domain 層碰 DB 相關細節。
-        _ = reason; // reason 交給呼叫端拿去寫 OrderStatusLog,Entity 內部這裡不需要用到它
+        // reason 交給呼叫端拿去寫 OrderStatusLog，Entity 內部不需要用到它
     }
 
     private static bool IsValidTransition(OrderStatus from, OrderStatus to)

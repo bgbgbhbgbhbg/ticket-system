@@ -105,6 +105,48 @@ public class OrderServiceTests
     }
 
     // ─────────────────────────────────────────────────────────
+    // UT-ORD-02B: TOCTOU 並發場景 — CreateAsync 拋 DuplicateIdempotencyKeyException
+    //             → 重查回傳既有訂單（IsNew = false），不 publish
+    // ─────────────────────────────────────────────────────────
+    [Fact]
+    public async Task CreateOrderAsync_ConcurrentDuplicateInsert_ShouldReturnExistingOrderWithoutPublishing()
+    {
+        // Arrange：第一次 idempotency 查詢回傳 null（通過 TOCTOU 窗口），
+        //           但 CreateAsync 因並發衝突拋 DuplicateIdempotencyKeyException；
+        //           第二次查詢回傳競爭者已建立的訂單。
+        var idempotencyKey = "concurrent-key-456";
+        var competingOrder = Order.Create(UserId, TicketId, 1, 500m, idempotencyKey);
+        var ticket = MakeTicket(price: 500m);
+
+        _orderRepository.GetByIdempotencyKeyAsync(idempotencyKey, UserId, Arg.Any<CancellationToken>())
+            .Returns((Order?)null, competingOrder);  // 第一次 null，第二次回傳競爭者訂單
+
+        _ticketRepository.GetByIdAsync(TicketId, Arg.Any<CancellationToken>())
+            .Returns(ticket);
+
+        _orderRepository.CreateAsync(Arg.Any<Order>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<Order>(new DuplicateIdempotencyKeyException()));
+
+        // Act
+        var (order, isNew) = await _orderService.CreateOrderAsync(UserId, TicketId, 1, idempotencyKey);
+
+        // Assert：應回傳既有訂單、IsNew = false
+        Assert.False(isNew);
+        Assert.Equal(competingOrder, order);
+
+        // CreateAsync 被呼叫一次（嘗試插入）
+        await _orderRepository.Received(1).CreateAsync(Arg.Any<Order>(), Arg.Any<CancellationToken>());
+
+        // GetByIdempotencyKeyAsync 被呼叫兩次（第一次通過 + 第二次重查）
+        await _orderRepository.Received(2).GetByIdempotencyKeyAsync(
+            idempotencyKey, UserId, Arg.Any<CancellationToken>());
+
+        // 不應該 publish（不是新訂單，且不能重複發送 MQ 訊息）
+        await _messagePublisher.DidNotReceive().PublishOrderCreatedAsync(
+            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
+
+    // ─────────────────────────────────────────────────────────
     // UT-ORD-03: quantity 超過 10 → OrderQuantityExceedsLimitException
     // ─────────────────────────────────────────────────────────
     [Theory]

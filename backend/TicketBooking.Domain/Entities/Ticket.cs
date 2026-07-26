@@ -17,6 +17,15 @@ public class Ticket
 
     public static Ticket Create(string name, string eventName, DateTime eventStartAt, int totalQuantity, decimal price)
     {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("name 不可為空白。", nameof(name));
+        if (string.IsNullOrWhiteSpace(eventName))
+            throw new ArgumentException("eventName 不可為空白。", nameof(eventName));
+        if (totalQuantity < 0)
+            throw new ArgumentOutOfRangeException(nameof(totalQuantity), "totalQuantity 不可小於 0。");
+        if (price < 0)
+            throw new ArgumentOutOfRangeException(nameof(price), "price 不可小於 0。");
+
         var now = DateTime.UtcNow;
         return new Ticket
         {
