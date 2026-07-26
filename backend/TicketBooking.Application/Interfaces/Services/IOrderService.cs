@@ -1,4 +1,5 @@
 using TicketBooking.Domain.Entities;
+using TicketBooking.Domain.Enums;
 
 namespace TicketBooking.Application.Interfaces.Services;
 
@@ -25,5 +26,21 @@ public interface IOrderService
     Task<Order?> GetOrderByIdAsync(
         Guid orderId,
         Guid userId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Admin 分頁查詢所有訂單，可依狀態篩選。
+    /// </summary>
+    Task<(List<Order> Items, int Total)> GetOrdersAsync(
+        OrderStatus? statusFilter, int page, int pageSize,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Admin 手動介入訂單狀態。
+    /// 仍須通過 Order.TransitionTo() 合法轉換檢查。
+    /// 拋出 OrderNotFoundException（查無訂單）或 InvalidStatusTransitionException（不合法轉換）。
+    /// </summary>
+    Task<Order> UpdateOrderStatusAsync(
+        Guid orderId, OrderStatus toStatus, string reason,
         CancellationToken cancellationToken = default);
 }

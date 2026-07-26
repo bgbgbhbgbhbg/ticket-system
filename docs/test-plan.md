@@ -50,10 +50,10 @@
 | 註冊重複 email | `POST /auth/register` | `AUTH_EMAIL_ALREADY_EXISTS` | ⬜ |
 | 登入密碼錯誤 | `POST /auth/login` | `AUTH_INVALID_CREDENTIALS` | ⬜ |
 | 未帶 JWT 呼叫 `/orders` | `POST /orders` | 401 | ✅ |
-| 一般 User 呼叫 `/admin/orders` | `GET /admin/orders` | `AUTH_INSUFFICIENT_ROLE` | ⬜ |
-| Admin 呼叫 `/admin/orders` 正常回傳分頁清單 | `GET /admin/orders` | — | ⬜ |
+| 一般 User 呼叫 `/admin/orders` | `GET /admin/orders` | `AUTH_INSUFFICIENT_ROLE` | ✅ |
+| Admin 呼叫 `/admin/orders` 正常回傳分頁清單 | `GET /admin/orders` | — | ✅ |
 | 下單數量超過 10 | `POST /orders` | `ORDER_QUANTITY_EXCEEDS_LIMIT` | ✅ |
-| Admin 嘗試把 Success 訂單改成 Failed | `PATCH /admin/orders/{id}/status` | `ORDER_INVALID_STATUS_TRANSITION` | ⬜ |
+| Admin 嘗試把 Success 訂單改成 Failed | `PATCH /admin/orders/{id}/status` | `ORDER_INVALID_STATUS_TRANSITION` | ✅ |
 | `/health` 在 Redis 斷線時回傳 Degraded | `GET /health` | — | ⬜ |
 
 ---

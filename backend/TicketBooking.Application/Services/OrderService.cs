@@ -3,6 +3,7 @@ using TicketBooking.Application.Interfaces;
 using TicketBooking.Application.Interfaces.Repositories;
 using TicketBooking.Application.Interfaces.Services;
 using TicketBooking.Domain.Entities;
+using TicketBooking.Domain.Enums;
 
 namespace TicketBooking.Application.Services;
 
@@ -95,6 +96,36 @@ public class OrderService : IOrderService
         {
             return null;
         }
+
+        return order;
+    }
+
+    public async Task<(List<Order> Items, int Total)> GetOrdersAsync(
+        OrderStatus? statusFilter, int page, int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        // pageSize 夾住上限，防止前端傳 100000 打爆 DB
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        page = Math.Max(page, 1);
+
+        return await _orderRepository.GetPagedAsync(statusFilter, page, pageSize, cancellationToken);
+    }
+
+    public async Task<Order> UpdateOrderStatusAsync(
+        Guid orderId, OrderStatus toStatus, string reason,
+        CancellationToken cancellationToken = default)
+    {
+        var order = await _orderRepository.GetByIdAsync(orderId, cancellationToken);
+        if (order is null)
+            throw new OrderNotFoundException(orderId);
+
+        var fromStatus = order.Status;
+
+        // 合法性由 Domain 檢查（TransitionTo 拋 InvalidStatusTransitionException 若不合法）
+        order.TransitionTo(toStatus, reason);
+
+        var log = OrderStatusLog.Create(order.Id, fromStatus, toStatus, reason);
+        await _orderRepository.UpdateAndAddStatusLogAsync(order, log, cancellationToken);
 
         return order;
     }

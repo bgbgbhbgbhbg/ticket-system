@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System.Text;
+using TicketBooking.Api;
 using TicketBooking.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -46,6 +49,10 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
+
+// 自訂 403 回應格式：把 ASP.NET Core 預設的空 body 403 轉成統一的 ErrorResponse
+// 對應 docs/3_specs/error-codes.md AUTH_INSUFFICIENT_ROLE
+builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, CustomAuthorizationMiddlewareResultHandler>();
 
 // DbContext 配置(對應 SETUP.md 第 5.2 節 & AGENTS.md 第 2 節)
 var connectionString = builder.Configuration["ConnectionStrings:Postgres"];
