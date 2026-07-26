@@ -88,16 +88,16 @@ cd ../..
 
 # EF Core 套件版本要 pin 住配合 .NET 9(參考你 WorkItemBackend 的作法)
 cd TicketBooking.Infrastructure
-dotnet add package Microsoft.EntityFrameworkCore.Tools --version 9.0.*
-dotnet add package Microsoft.EntityFrameworkCore.Design --version 9.0.*
-dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL --version 9.0.*
+dotnet add package Microsoft.EntityFrameworkCore.Tools --version 9.0.17
+dotnet add package Microsoft.EntityFrameworkCore.Design --version 9.0.17
+dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL --version 9.0.17
 dotnet add package StackExchange.Redis
 dotnet add package RabbitMQ.Client
 cd ..
 
 cd TicketBooking.Api
 dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
-dotnet add package Microsoft.EntityFrameworkCore.Design --version 9.0.2
+dotnet add package Microsoft.EntityFrameworkCore.Design --version 9.0.17
 # .NET 9 移除了 Swashbuckle,官方原生方案是 Microsoft.AspNetCore.OpenApi(產生 spec)+ Scalar(UI),
 # 不需要另外裝 Swashbuckle,這是目前多數團隊採用的組合
 dotnet add package Microsoft.AspNetCore.OpenApi
