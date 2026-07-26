@@ -38,8 +38,8 @@
 |---|---|---|
 | 樂觀鎖 CAS SQL:兩個並發請求同時扣庫存,只有一個成功 | data-model.md 2.2 節 | ✅ |
 | `available_quantity` 不會扣成負數(CHECK constraint 生效) | data-model.md 2.2 節 | ✅ |
-| 相同 `idempotency_key` 送兩次請求,只建立一筆訂單 | data-model.md 2.3 節 | ⬜ |
-| `total_amount` 在票價異動後,舊訂單金額不變(快照特性) | data-model.md 2.3 節 | ⬜ |
+| 相同 `idempotency_key` 送兩次請求,只建立一筆訂單 | data-model.md 2.3 節 | ✅ |
+| `total_amount` 在票價異動後,舊訂單金額不變(快照特性) | data-model.md 2.3 節 | ✅ |
 
 ---
 
