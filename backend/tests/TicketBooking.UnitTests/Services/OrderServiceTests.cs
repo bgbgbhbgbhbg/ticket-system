@@ -321,9 +321,9 @@ public class OrderServiceTests
     }
 
     [Theory]
-    [InlineData(0, 1)]    // page 最小夾住為 1
-    [InlineData(200, 100)] // pageSize 夾住為 100
-    public async Task GetOrdersAsync_OutOfBoundsParams_ShouldClamp(int pageSize, int expectedPageSize)
+    [InlineData(0, 1)]    // pageSize=0 夾住為 1
+    [InlineData(200, 100)] // pageSize=200 夾住為 100
+    public async Task GetOrdersAsync_OutOfBoundsPageSize_ShouldClamp(int pageSize, int expectedPageSize)
     {
         // Arrange
         _orderRepository.GetPagedAsync(null, 1, expectedPageSize, Arg.Any<CancellationToken>())
@@ -334,6 +334,22 @@ public class OrderServiceTests
 
         // Assert：Repository 被呼叫時 pageSize 已夾住
         await _orderRepository.Received(1).GetPagedAsync(null, 1, expectedPageSize, Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData(0)]   // page=0 → 夾住為 1
+    [InlineData(-5)]  // 負數 → 夾住為 1
+    public async Task GetOrdersAsync_OutOfBoundsPage_ShouldClampToOne(int pageInput)
+    {
+        // Arrange
+        _orderRepository.GetPagedAsync(null, 1, 20, Arg.Any<CancellationToken>())
+            .Returns((new List<Order>(), 0));
+
+        // Act
+        await _orderService.GetOrdersAsync(null, pageInput, 20);
+
+        // Assert：Repository 被呼叫時 page 已夾住為 1
+        await _orderRepository.Received(1).GetPagedAsync(null, 1, 20, Arg.Any<CancellationToken>());
     }
 
     // ─────────────────────────────────────────────────────────

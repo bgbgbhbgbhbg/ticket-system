@@ -13,6 +13,9 @@ public class AdminUpdateStatusRequest
     public string ToStatus { get; set; } = null!;
 
     [Required]
-    [MaxLength(500)]
+    // DB column: order_status_logs.reason varchar(500)
+    // Controller 會加上 "admin_manual_override: "（23 字元）前綴，
+    // 因此 Reason 本身的上限為 500 - 23 = 477
+    [MaxLength(477)]
     public string Reason { get; set; } = null!;
 }
