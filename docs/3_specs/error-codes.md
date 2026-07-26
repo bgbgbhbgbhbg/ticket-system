@@ -46,6 +46,12 @@
 | `SYSTEM_INTERNAL_ERROR` | 500 | 未預期的例外,不應該讓使用者看到內部細節,statusCode 500 一律回這個碼 |
 | `SYSTEM_SERVICE_UNAVAILABLE` | 503 | 對應 `/health` 回報 Unhealthy 時的狀態 |
 
+### Common 模組（輸入驗證）
+
+| errorCode | HTTP Status | 說明 |
+|---|---|---|
+| `VALIDATION_ERROR` | 422 | 請求參數格式不合法（enum 值不在允許清單、欄位格式錯誤等）。注意：ModelState 自動驗證失敗（DataAnnotations）也使用此碼，透過 `ApiBehaviorOptions.InvalidModelStateResponseFactory` 統一格式 |
+
 ---
 
 ## 3. 兩種「錯誤」的區分(重要)

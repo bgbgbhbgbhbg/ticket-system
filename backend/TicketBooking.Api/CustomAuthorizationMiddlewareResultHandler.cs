@@ -28,7 +28,8 @@ public class CustomAuthorizationMiddlewareResultHandler : IAuthorizationMiddlewa
             {
                 ErrorCode = "AUTH_INSUFFICIENT_ROLE",
                 Message = "權限不足，此操作需要 Admin 角色",
-                TraceId = context.TraceIdentifier
+                // 使用 Activity.Current?.Id 優先（W3C TraceContext 格式），與其他 ErrorResponse 一致
+                TraceId = Activity.Current?.Id ?? context.TraceIdentifier
             });
             return;
         }
