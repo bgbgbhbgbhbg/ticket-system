@@ -98,7 +98,15 @@ public class OrderProcessingWorker : BackgroundService
             {
                 // 連線中斷時，等待後重連
                 _logger.LogError(ex, "OrderProcessingWorker 連線中斷，5 秒後重試");
-                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    // 正常關機：不讓 OperationCanceledException 逸出 catch 區塊導致 BackgroundService 以例外結束
+                    break;
+                }
             }
         }
 
@@ -139,6 +147,13 @@ public class OrderProcessingWorker : BackgroundService
             // 訊息格式錯誤（poison message）→ ack 丟棄，避免 requeue 後的無限重試
             _logger.LogError(ex, "收到格式錯誤的訊息（delivery tag {Tag}），直接 ack 丟棄", ea.DeliveryTag);
             await channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // 正常關機：不 ack/nack，channel 關閉時未 ack 訊息會由 RabbitMQ 自動 requeue
+            _logger.LogInformation(
+                "OrderProcessingWorker 正在停止，訊息尚未處理完成（delivery tag {Tag}），將由 RabbitMQ 重新投遞",
+                ea.DeliveryTag);
         }
         catch (NpgsqlException ex)
         {
