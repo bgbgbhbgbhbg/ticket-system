@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using NSubstitute;
 using TicketBooking.Application.Exceptions;
 using TicketBooking.Application.Interfaces.Repositories;
@@ -12,19 +11,18 @@ public class AuthServiceTests
 {
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly IConfiguration _configuration;
+    private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly AuthService _authService;
 
     public AuthServiceTests()
     {
         _userRepository = Substitute.For<IUserRepository>();
         _passwordHasher = Substitute.For<IPasswordHasher>();
-        _configuration = Substitute.For<IConfiguration>();
+        _jwtTokenGenerator = Substitute.For<IJwtTokenGenerator>();
 
-        // 設定 JWT secret key
-        _configuration["Jwt:SecretKey"].Returns("test-secret-key-at-least-32-characters-long");
+        _jwtTokenGenerator.GenerateToken(Arg.Any<User>()).Returns("test-jwt-token");
 
-        _authService = new AuthService(_userRepository, _passwordHasher, _configuration);
+        _authService = new AuthService(_userRepository, _passwordHasher, _jwtTokenGenerator);
     }
 
     [Fact]

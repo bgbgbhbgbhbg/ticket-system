@@ -4,7 +4,7 @@
 
 ---
 
-## 1. `AuthService` 直接依賴 JWT 技術套件,沒有比照 `IPasswordHasher` 抽象化
+## 1. ~~`AuthService` 直接依賴 JWT 技術套件,沒有比照 `IPasswordHasher` 抽象化~~ ✅ 已解決 (2026-07-26)
 
 **發現時間**:Task 3(Auth 功能)review 階段
 
@@ -21,7 +21,7 @@
 
 ---
 
-## 2. `IX_order_status_logs_order_id` 索引命名沒有照 `idx_xxx` 慣例
+## 2. ~~`IX_order_status_logs_order_id` 索引命名沒有照 `idx_xxx` 慣例~~ ✅ 已解決 (2026-07-26)
 
 **發現時間**:InitialCreate migration review 階段
 

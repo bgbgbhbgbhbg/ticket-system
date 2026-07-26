@@ -25,6 +25,10 @@ public class OrderStatusLogConfiguration : IEntityTypeConfiguration<OrderStatusL
             .HasForeignKey(l => l.OrderId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // EF Core 自動產生的外鍵索引改為統一的 idx_xxx 命名慣例（tech-debt #2）
+        builder.HasIndex(l => l.OrderId)
+            .HasDatabaseName("idx_order_status_logs_order_id");
+
         // 修改:FromStatus 是 OrderStatus?(nullable enum,對應初始狀態為 NULL),加 HasConversion<string>
         builder.Property(l => l.FromStatus)
             .HasColumnName("from_status")

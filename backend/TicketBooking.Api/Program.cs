@@ -94,6 +94,8 @@ builder.Services.AddScoped<TicketBooking.Application.Interfaces.Services.IAuthSe
     TicketBooking.Application.Services.AuthService>();
 builder.Services.AddScoped<TicketBooking.Application.Interfaces.Security.IPasswordHasher,
     TicketBooking.Infrastructure.Security.PasswordHasher>();
+builder.Services.AddScoped<TicketBooking.Application.Interfaces.Security.IJwtTokenGenerator,
+    TicketBooking.Infrastructure.Security.JwtTokenGenerator>();
 
 // Orders 相關服務
 builder.Services.AddScoped<TicketBooking.Application.Interfaces.Repositories.IOrderRepository,

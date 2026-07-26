@@ -59,7 +59,18 @@ public class OrderService : IOrderService
         var order = Order.Create(userId, ticketId, quantity, totalAmount, idempotencyKey);
 
         // 6. 持久化到資料庫
-        var created = await _orderRepository.CreateAsync(order, cancellationToken);
+        Order created;
+        try
+        {
+            created = await _orderRepository.CreateAsync(order, cancellationToken);
+        }
+        catch (DuplicateIdempotencyKeyException)
+        {
+            // 並發 TOCTOU：另一個請求在本次查詢後、INSERT 前完成建立，
+            // 重新查詢回傳既有訂單（IsNew = false），呼叫端得到正確的 409。
+            var existing = await _orderRepository.GetByIdempotencyKeyAsync(idempotencyKey, userId, cancellationToken);
+            return (existing!, false);
+        }
 
         // 7. 發布 order.created 訊息到 RabbitMQ（Worker 消費後才執行庫存扣減，見 message-contracts.md）
         await _messagePublisher.PublishOrderCreatedAsync(

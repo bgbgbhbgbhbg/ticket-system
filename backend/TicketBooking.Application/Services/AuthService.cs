@@ -1,8 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
 using TicketBooking.Application.Exceptions;
 using TicketBooking.Application.Interfaces.Repositories;
 using TicketBooking.Application.Interfaces.Security;
@@ -15,16 +10,16 @@ public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly IConfiguration _configuration;
+    private readonly IJwtTokenGenerator _jwtTokenGenerator;
 
     public AuthService(
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
-        IConfiguration configuration)
+        IJwtTokenGenerator jwtTokenGenerator)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
-        _configuration = configuration;
+        _jwtTokenGenerator = jwtTokenGenerator;
     }
 
     public async Task<User> RegisterAsync(
@@ -69,37 +64,12 @@ public class AuthService : IAuthService
             throw new InvalidCredentialsException();
         }
 
-        // 簽發 JWT
-        var token = GenerateJwtToken(user);
+        // 簽發 JWT（委派給 Infrastructure 層的 IJwtTokenGenerator）
+        var token = _jwtTokenGenerator.GenerateToken(user);
 
         return (user, token);
     }
 
-    private string GenerateJwtToken(User user)
-    {
-        var jwtSecret = _configuration["Jwt:SecretKey"]
-            ?? throw new InvalidOperationException("JWT:SecretKey not configured");
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.UTF8.GetBytes(jwtSecret);
-
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(new[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role)
-            }),
-            Expires = DateTime.UtcNow.AddHours(1),
-            SigningCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(key),
-                SecurityAlgorithms.HmacSha256Signature)
-        };
-    
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
-    }
     public async Task<User?> GetUserByIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return await _userRepository.GetByIdAsync(userId, cancellationToken);

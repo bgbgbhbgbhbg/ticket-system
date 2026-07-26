@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using TicketBooking.Domain.Entities;
 using TicketBooking.Infrastructure.Persistence;
 
@@ -53,11 +54,14 @@ public class SchemaConstraintTests : IAsyncLifetime
 
         // Act & Assert：繞過應用層，直接用 raw SQL 嘗試違反 CHECK constraint
         // ExecuteSqlAsync 使用 FormattableString 自動參數化，防止 SQL injection
-        await Assert.ThrowsAnyAsync<Exception>(async () =>
+        var ex = await Assert.ThrowsAsync<PostgresException>(async () =>
         {
             await _dbContext.Database.ExecuteSqlAsync(
                 $"UPDATE tickets SET available_quantity = {-1} WHERE id = {ticket.Id}");
         });
+        // 23514 = check_violation（PostgreSQL error code）
+        Assert.Equal("23514", ex.SqlState);
+        Assert.Equal("ck_tickets_available_quantity", ex.ConstraintName);
     }
 
     // ── IT-IDEM-01: idempotency_key 複合唯一索引生效 ─────────────────────────
@@ -91,8 +95,12 @@ public class SchemaConstraintTests : IAsyncLifetime
         ctx2.Orders.Add(order2);
 
         // Assert：EF Core 會把 PostgresException (UNIQUE VIOLATION) 包裝成 DbUpdateException
-        await Assert.ThrowsAsync<DbUpdateException>(async () =>
+        var ex = await Assert.ThrowsAsync<DbUpdateException>(async () =>
             await ctx2.SaveChangesAsync());
+        // 23505 = unique_violation（PostgreSQL error code）
+        var pgEx = Assert.IsType<PostgresException>(ex.InnerException);
+        Assert.Equal("23505", pgEx.SqlState);
+        Assert.Equal("idx_orders_user_idempotency_key", pgEx.ConstraintName);
     }
 
     // ── IT-SNAP-01: total_amount 快照特性 ─────────────────────────────────────
