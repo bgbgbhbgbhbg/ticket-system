@@ -224,7 +224,7 @@ Task 5 狀態：⬜ → ✅
 ### 6.1 必要的 package 安裝
 ```bash
 # Infrastructure 專案需要 BackgroundService
-dotnet add TicketBooking.Infrastructure package Microsoft.Extensions.Hosting.Abstractions
+dotnet add TicketBooking.Infrastructure package Microsoft.Extensions.Hosting.Abstractions --version 9.0.17
 
 # IntegrationTests 需要對齐的 EF Core 版本
 dotnet add tests/TicketBooking.IntegrationTests package Microsoft.EntityFrameworkCore@9.0.2

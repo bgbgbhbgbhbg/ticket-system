@@ -60,33 +60,24 @@ public class OrderProcessingServiceTests
 
         _orderRepository.GetByIdAsync(OrderId, Arg.Any<CancellationToken>()).Returns(order);
         _ticketRepository.GetByIdNoTrackingAsync(TicketId, Arg.Any<CancellationToken>()).Returns(ticket);
-        _ticketRepository.TryDeductInventoryAsync(TicketId, 2, 0, Arg.Any<CancellationToken>()).Returns(1); // 成功
+        // TryDeductAndTransitionAsync 封裝了扣庫存 + 狀態轉換，成功回傳 true
+        _orderRepository.TryDeductAndTransitionAsync(
+            order, TicketId, 2, 0, OrderStatus.Success, "inventory_deducted", Arg.Any<CancellationToken>())
+            .Returns(true);
 
         // Act
         await _sut.ProcessOrderAsync(OrderId);
 
-        // Assert
-        Assert.Equal(OrderStatus.Success, order.Status);
-
-        // 應呼叫 UpdateAndAddStatusLogAsync 兩次：Processing + Success
-        await _orderRepository.Received(2).UpdateAndAddStatusLogAsync(
-            Arg.Is<Order>(o => o == order),
-            Arg.Any<OrderStatusLog>(),
-            Arg.Any<CancellationToken>());
-
-        // 第一次 log 轉到 Processing
+        // Assert：TryDeductAndTransitionAsync 內部已執行狀態轉換，
+        // UpdateAndAddStatusLogAsync 只應被呼叫 1 次（Pending → Processing）
         await _orderRepository.Received(1).UpdateAndAddStatusLogAsync(
             order,
             Arg.Is<OrderStatusLog>(l =>
                 l.ToStatus == OrderStatus.Processing && l.Reason == "worker_picked_up"),
             Arg.Any<CancellationToken>());
 
-        // 第二次 log 轉到 Success
-        await _orderRepository.Received(1).UpdateAndAddStatusLogAsync(
-            order,
-            Arg.Is<OrderStatusLog>(l =>
-                l.ToStatus == OrderStatus.Success && l.Reason == "inventory_deducted"),
-            Arg.Any<CancellationToken>());
+        await _orderRepository.Received(1).TryDeductAndTransitionAsync(
+            order, TicketId, 2, 0, OrderStatus.Success, "inventory_deducted", Arg.Any<CancellationToken>());
     }
 
     // ── UT-PROC-02: 庫存不足 → Failed ────────────────────────────────────────
@@ -108,9 +99,10 @@ public class OrderProcessingServiceTests
         // Assert
         Assert.Equal(OrderStatus.Failed, order.Status);
 
-        // 不應呼叫 TryDeductInventoryAsync（庫存不足直接失敗）
-        await _ticketRepository.DidNotReceive().TryDeductInventoryAsync(
-            Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+        // 不應呼叫 TryDeductAndTransitionAsync（庫存不足直接失敗，不嘗試 CAS）
+        await _orderRepository.DidNotReceive().TryDeductAndTransitionAsync(
+            Arg.Any<Order>(), Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<int>(),
+            Arg.Any<OrderStatus>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
 
         // 應寫入 Failed log，reason = insufficient_inventory
         await _orderRepository.Received(1).UpdateAndAddStatusLogAsync(
@@ -132,19 +124,19 @@ public class OrderProcessingServiceTests
         _orderRepository.GetByIdAsync(OrderId, Arg.Any<CancellationToken>()).Returns(order);
         _ticketRepository.GetByIdNoTrackingAsync(TicketId, Arg.Any<CancellationToken>()).Returns(ticket);
 
-        // Sequential returns：前兩次 CAS 回傳 0（version 衝突），第三次回傳 1（成功）
-        _ticketRepository.TryDeductInventoryAsync(
-            Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
-            .Returns(0, 0, 1);
+        // Sequential returns：前兩次 CAS 回傳 false（version 衝突），第三次回傳 true（成功）
+        _orderRepository.TryDeductAndTransitionAsync(
+            Arg.Any<Order>(), Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<int>(),
+            Arg.Any<OrderStatus>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(false, false, true);
 
         // Act
         await _sut.ProcessOrderAsync(OrderId);
 
         // Assert
-        Assert.Equal(OrderStatus.Success, order.Status);
-
-        await _ticketRepository.Received(3).TryDeductInventoryAsync(
-            Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+        await _orderRepository.Received(3).TryDeductAndTransitionAsync(
+            Arg.Any<Order>(), Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<int>(),
+            Arg.Any<OrderStatus>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     // ── UT-PROC-04: 連續 4 次衝突 → optimistic_lock_retry_exhausted ──────────
@@ -160,10 +152,11 @@ public class OrderProcessingServiceTests
         // GetByIdNoTracking 每次都回傳相同 ticket（避免 null），但 CAS 每次都失敗
         _ticketRepository.GetByIdNoTrackingAsync(TicketId, Arg.Any<CancellationToken>())
             .Returns(ticket);
-        // 4 次 CAS 全都回傳 0（衝突）
-        _ticketRepository.TryDeductInventoryAsync(
-            Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
-            .Returns(0);
+        // 4 次 CAS 全都回傳 false（衝突）
+        _orderRepository.TryDeductAndTransitionAsync(
+            Arg.Any<Order>(), Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<int>(),
+            Arg.Any<OrderStatus>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(false);
 
         // Act
         await _sut.ProcessOrderAsync(OrderId);
@@ -171,9 +164,10 @@ public class OrderProcessingServiceTests
         // Assert
         Assert.Equal(OrderStatus.Failed, order.Status);
 
-        // 應呼叫 TryDeductInventoryAsync 恰好 4 次（初始 1 + 重試 3 = MaxRetries+1）
-        await _ticketRepository.Received(4).TryDeductInventoryAsync(
-            Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+        // 應呼叫 TryDeductAndTransitionAsync 恰好 4 次（初始 1 + 重試 3 = MaxRetries+1）
+        await _orderRepository.Received(4).TryDeductAndTransitionAsync(
+            Arg.Any<Order>(), Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<int>(),
+            Arg.Any<OrderStatus>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
 
         // 應寫入 Failed log，reason = optimistic_lock_retry_exhausted
         await _orderRepository.Received(1).UpdateAndAddStatusLogAsync(
@@ -198,19 +192,19 @@ public class OrderProcessingServiceTests
             .Returns(ticket);
 
         var callCount = 0;
-        _ticketRepository.TryDeductInventoryAsync(
-                Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+        _orderRepository.TryDeductAndTransitionAsync(
+                Arg.Any<Order>(), Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<int>(),
+                Arg.Any<OrderStatus>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(_ =>
             {
                 callCount++;
-                return callCount <= 3 ? 0 : 1; // 前 3 次失敗，第 4 次成功（第 3 次重試剛好通過）
+                return callCount <= 3 ? false : true; // 前 3 次失敗，第 4 次成功（第 3 次重試剛好通過）
             });
 
         // Act
         await _sut.ProcessOrderAsync(OrderId);
 
-        // Assert
-        Assert.Equal(OrderStatus.Success, order.Status);
+        // Assert（TryDeductAndTransitionAsync 內部執行狀態轉換，order.Status 不由 service 直接更新）
         Assert.Equal(4, callCount); // 呼叫了 4 次（初始 + 3 次重試）
     }
 
@@ -231,10 +225,10 @@ public class OrderProcessingServiceTests
             Arg.Any<Order>(), Arg.Any<OrderStatusLog>(), Arg.Any<CancellationToken>());
     }
 
-    // ── UT-PROC-07: 驗證每次轉換都有寫 OrderStatusLog ─────────────────────────
+    // ── UT-PROC-07: 驗證 Success 路徑的 OrderStatusLog 寫入行為 ──────────────────
 
     [Fact]
-    public async Task ProcessOrderAsync_Success_ShouldWriteTwoStatusLogs()
+    public async Task ProcessOrderAsync_Success_ShouldWriteProcessingStatusLogAndCallDeductTransition()
     {
         // Arrange
         var order = MakePendingOrder(quantity: 1);
@@ -242,14 +236,20 @@ public class OrderProcessingServiceTests
 
         _orderRepository.GetByIdAsync(OrderId, Arg.Any<CancellationToken>()).Returns(order);
         _ticketRepository.GetByIdNoTrackingAsync(TicketId, Arg.Any<CancellationToken>()).Returns(ticket);
-        _ticketRepository.TryDeductInventoryAsync(TicketId, 1, 3, Arg.Any<CancellationToken>()).Returns(1);
+        _orderRepository.TryDeductAndTransitionAsync(
+            order, TicketId, 1, Arg.Any<int>(), OrderStatus.Success, "inventory_deducted", Arg.Any<CancellationToken>())
+            .Returns(true);
 
         // Act
         await _sut.ProcessOrderAsync(OrderId);
 
-        // Assert: 總共呼叫 2 次 UpdateAndAddStatusLogAsync
-        await _orderRepository.Received(2).UpdateAndAddStatusLogAsync(
+        // Assert: UpdateAndAddStatusLogAsync 只呼叫 1 次（Pending → Processing）
+        // Success 的狀態轉換在 TryDeductAndTransitionAsync（DB transaction）內部完成，不另外呼叫 UpdateAndAddStatusLogAsync
+        await _orderRepository.Received(1).UpdateAndAddStatusLogAsync(
             Arg.Any<Order>(), Arg.Any<OrderStatusLog>(), Arg.Any<CancellationToken>());
+
+        await _orderRepository.Received(1).TryDeductAndTransitionAsync(
+            order, TicketId, 1, Arg.Any<int>(), OrderStatus.Success, "inventory_deducted", Arg.Any<CancellationToken>());
     }
 
     // ── UT-PROC-08: Processing → Failed，確認 fromStatus 紀錄正確 ─────────────

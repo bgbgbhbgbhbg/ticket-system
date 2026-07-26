@@ -90,15 +90,20 @@ public class OrderProcessingService : IOrderProcessingService
                 return;
             }
 
-            // 嘗試 CAS 扣庫存
-            var affected = await _ticketRepository.TryDeductInventoryAsync(
-                order.TicketId, order.Quantity, ticket.Version, cancellationToken);
+            // 嘗試 CAS 扣庫存（在同一個 DB transaction 內完成扣庫存 + 訂單狀態轉換）
+            var succeeded = await _orderRepository.TryDeductAndTransitionAsync(
+                order,
+                order.TicketId,
+                order.Quantity,
+                ticket.Version,
+                OrderStatus.Success,
+                "inventory_deducted",
+                cancellationToken);
 
-            if (affected == 1)
+            if (succeeded)
             {
                 // 成功！
                 _logger.LogInformation("Order {OrderId} 扣庫存成功（version {Version}）", orderId, ticket.Version);
-                await TransitionToSuccessAsync(order, cancellationToken);
                 // TODO(Task 8): invalidate Redis cache after inventory update
                 return;
             }
@@ -123,14 +128,6 @@ public class OrderProcessingService : IOrderProcessingService
     }
 
     // ── 私有輔助方法 ──────────────────────────────────────────────────────────
-
-    private async Task TransitionToSuccessAsync(Order order, CancellationToken ct)
-    {
-        var fromStatus = order.Status; // Processing
-        order.TransitionTo(OrderStatus.Success, "inventory_deducted");
-        var log = OrderStatusLog.Create(order.Id, fromStatus, OrderStatus.Success, "inventory_deducted");
-        await _orderRepository.UpdateAndAddStatusLogAsync(order, log, ct);
-    }
 
     private async Task TransitionToFailedAsync(Order order, string reason, CancellationToken ct)
     {
