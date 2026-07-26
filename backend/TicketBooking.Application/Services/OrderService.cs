@@ -69,8 +69,11 @@ public class OrderService : IOrderService
         {
             // 並發 TOCTOU：另一個請求在本次查詢後、INSERT 前完成建立，
             // 重新查詢回傳既有訂單（IsNew = false），呼叫端得到正確的 409。
+            // 若 unique violation 來自尚未 commit 或最終 rollback 的並發交易，
+            // 重查可能仍為 null，此時 rethrow 讓上層正常處理例外，避免 NRE。
             var existing = await _orderRepository.GetByIdempotencyKeyAsync(idempotencyKey, userId, cancellationToken);
-            return (existing!, false);
+            if (existing is null) throw;
+            return (existing, false);
         }
 
         // 7. 發布 order.created 訊息到 RabbitMQ（Worker 消費後才執行庫存扣減，見 message-contracts.md）

@@ -6,6 +6,31 @@
 
 ---
 
+> **2026-07-26 追加** — `feature/admin-rbac` Code Review 修正（PR #6）
+
+## 問題 4 ✅ — DuplicateIdempotencyKeyException TOCTOU 情境 NRE 風險
+
+**檔案**：`TicketBooking.Application/Services/OrderService.cs`
+
+**問題**：`catch (DuplicateIdempotencyKeyException)` 捕捉到 unique violation 後，重新查詢既有訂單並使用 `existing!`（null-forgiving operator）回傳。在極端並發情境（重覆 violation 來自尚未 commit 或最終 rollback 的並發交易），`GetByIdempotencyKeyAsync` 重查仍可能回傳 null，導致 Controller 後續呼叫 `MapToResponse` 時拋出 NullReferenceException（500），而不是正確的業務錯誤。
+
+**修改**：加入 null 檢查，重查結果為 null 時改為 rethrow，讓上層以正常例外路徑處理：
+
+```csharp
+// Before
+var existing = await _orderRepository.GetByIdempotencyKeyAsync(idempotencyKey, userId, cancellationToken);
+return (existing!, false);
+
+// After
+var existing = await _orderRepository.GetByIdempotencyKeyAsync(idempotencyKey, userId, cancellationToken);
+if (existing is null) throw;
+return (existing, false);
+```
+
+**修改後測試結果**：✅ 全部 45 個測試通過（Unit 37 + Integration 8，0 failures）
+
+---
+
 ## 問題 1 ✅ — 連線中斷導致 Worker 永久卡死
 
 **檔案**：`TicketBooking.Infrastructure/Messaging/OrderProcessingWorker.cs`
