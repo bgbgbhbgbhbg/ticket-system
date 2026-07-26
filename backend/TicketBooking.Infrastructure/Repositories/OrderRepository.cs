@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using TicketBooking.Application.Exceptions;
 using TicketBooking.Application.Interfaces.Repositories;
 using TicketBooking.Domain.Entities;
 using TicketBooking.Domain.Enums;
@@ -30,8 +32,20 @@ public class OrderRepository : IOrderRepository
     public async Task<Order> CreateAsync(Order order, CancellationToken cancellationToken = default)
     {
         _context.Orders.Add(order);
-        await _context.SaveChangesAsync(cancellationToken);
-        return order;
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+            return order;
+        }
+        catch (DbUpdateException ex)
+            when (ex.InnerException is PostgresException pgEx
+                  && pgEx.SqlState == "23505"
+                  && pgEx.ConstraintName == "idx_orders_user_idempotency_key")
+        {
+            // 並發 TOCTOU：兩個請求同時通過 idempotency 查詢，第二個 INSERT 觸發 UNIQUE constraint。
+            // 轉成 Application 層例外，讓 OrderService 重新查詢並回傳既有訂單（IsNew = false）。
+            throw new DuplicateIdempotencyKeyException();
+        }
     }
 
     public async Task UpdateAndAddStatusLogAsync(Order order, OrderStatusLog log, CancellationToken cancellationToken = default)

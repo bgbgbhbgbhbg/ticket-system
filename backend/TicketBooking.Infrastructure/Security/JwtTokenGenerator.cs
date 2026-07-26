@@ -1,11 +1,11 @@
-/**
-using TicketBooking.Application.Interfaces.Security;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using TicketBooking.Application.Interfaces.Security;
 using TicketBooking.Domain.Entities;
+
 namespace TicketBooking.Infrastructure.Security;
 
 public class JwtTokenGenerator : IJwtTokenGenerator
@@ -43,4 +43,3 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         return tokenHandler.WriteToken(token);
     }
 }
-**/
