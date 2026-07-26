@@ -29,6 +29,25 @@ public class OrderRepository : IOrderRepository
             .FirstOrDefaultAsync(o => o.IdempotencyKey == idempotencyKey && o.UserId == userId, cancellationToken);
     }
 
+    public async Task<(List<Order> Items, int Total)> GetPagedAsync(
+        OrderStatus? statusFilter, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Orders.AsNoTracking().AsQueryable();
+
+        if (statusFilter.HasValue)
+            query = query.Where(o => o.Status == statusFilter.Value);
+
+        var total = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(o => o.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, total);
+    }
+
     public async Task<Order> CreateAsync(Order order, CancellationToken cancellationToken = default)
     {
         _context.Orders.Add(order);

@@ -5,6 +5,7 @@ using TicketBooking.Application.Interfaces.Repositories;
 using TicketBooking.Application.Services;
 using TicketBooking.Domain.Entities;
 using TicketBooking.Domain.Enums;
+using TicketBooking.Domain.Exceptions;
 
 namespace TicketBooking.UnitTests.Services;
 
@@ -290,4 +291,120 @@ public class OrderServiceTests
         // Assert
         Assert.Null(result);
     }
+
+    // ═════════════════════════════════════════════════════════
+    // Admin 方法
+    // ═════════════════════════════════════════════════════════
+
+    // ─────────────────────────────────────────────────────────
+    // UT-ORD-09: GetOrdersAsync 正常分頁查詢
+    // ─────────────────────────────────────────────────────────
+    [Fact]
+    public async Task GetOrdersAsync_ValidParams_ShouldReturnPagedOrders()
+    {
+        // Arrange
+        var orders = new List<Order>
+        {
+            Order.Create(UserId, TicketId, 1, 500m, "key-1"),
+            Order.Create(UserId, TicketId, 2, 1000m, "key-2"),
+        };
+        _orderRepository.GetPagedAsync(null, 1, 20, Arg.Any<CancellationToken>())
+            .Returns((orders, 2));
+
+        // Act
+        var (items, total) = await _orderService.GetOrdersAsync(null, 1, 20);
+
+        // Assert
+        Assert.Equal(2, total);
+        Assert.Equal(2, items.Count);
+        await _orderRepository.Received(1).GetPagedAsync(null, 1, 20, Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData(0, 1)]    // page 最小夾住為 1
+    [InlineData(200, 100)] // pageSize 夾住為 100
+    public async Task GetOrdersAsync_OutOfBoundsParams_ShouldClamp(int pageSize, int expectedPageSize)
+    {
+        // Arrange
+        _orderRepository.GetPagedAsync(null, 1, expectedPageSize, Arg.Any<CancellationToken>())
+            .Returns((new List<Order>(), 0));
+
+        // Act
+        await _orderService.GetOrdersAsync(null, 1, pageSize);
+
+        // Assert：Repository 被呼叫時 pageSize 已夾住
+        await _orderRepository.Received(1).GetPagedAsync(null, 1, expectedPageSize, Arg.Any<CancellationToken>());
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // UT-ORD-10: UpdateOrderStatusAsync 正常轉換
+    // ─────────────────────────────────────────────────────────
+    [Fact]
+    public async Task UpdateOrderStatusAsync_ValidTransition_ShouldUpdateAndLog()
+    {
+        // Arrange：Processing → Success（合法轉換）
+        var orderId = Guid.NewGuid();
+        var order = Order.Create(UserId, TicketId, 1, 500m, "key-admin-1");
+        order.TransitionTo(OrderStatus.Processing, "worker_picked_up");
+
+        _orderRepository.GetByIdAsync(orderId, Arg.Any<CancellationToken>())
+            .Returns(order);
+        _orderRepository.UpdateAndAddStatusLogAsync(
+            Arg.Any<Order>(), Arg.Any<OrderStatusLog>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _orderService.UpdateOrderStatusAsync(
+            orderId, OrderStatus.Success, "admin_manual_override: 手動確認成功");
+
+        // Assert
+        Assert.Equal(OrderStatus.Success, result.Status);
+        await _orderRepository.Received(1).UpdateAndAddStatusLogAsync(
+            Arg.Any<Order>(), Arg.Any<OrderStatusLog>(), Arg.Any<CancellationToken>());
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // UT-ORD-11: UpdateOrderStatusAsync 訂單不存在 → OrderNotFoundException
+    // ─────────────────────────────────────────────────────────
+    [Fact]
+    public async Task UpdateOrderStatusAsync_OrderNotFound_ShouldThrow()
+    {
+        // Arrange
+        var orderId = Guid.NewGuid();
+        _orderRepository.GetByIdAsync(orderId, Arg.Any<CancellationToken>())
+            .Returns((Order?)null);
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<OrderNotFoundException>(() =>
+            _orderService.UpdateOrderStatusAsync(orderId, OrderStatus.Success, "admin_manual_override: test"));
+
+        Assert.Equal(orderId, ex.OrderId);
+        await _orderRepository.DidNotReceive().UpdateAndAddStatusLogAsync(
+            Arg.Any<Order>(), Arg.Any<OrderStatusLog>(), Arg.Any<CancellationToken>());
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // UT-ORD-12: UpdateOrderStatusAsync 終態不可逆（Success → Failed）→ InvalidStatusTransitionException
+    // ─────────────────────────────────────────────────────────
+    [Fact]
+    public async Task UpdateOrderStatusAsync_TerminalStateTransition_ShouldThrow()
+    {
+        // Arrange：訂單已是 Success（終態），Admin 嘗試改成 Failed
+        var orderId = Guid.NewGuid();
+        var order = Order.Create(UserId, TicketId, 1, 500m, "key-admin-2");
+        order.TransitionTo(OrderStatus.Processing, "worker_picked_up");
+        order.TransitionTo(OrderStatus.Success, "inventory_deducted");
+
+        _orderRepository.GetByIdAsync(orderId, Arg.Any<CancellationToken>())
+            .Returns(order);
+
+        // Act & Assert：TransitionTo 內部拋出 InvalidStatusTransitionException
+        await Assert.ThrowsAsync<InvalidStatusTransitionException>(() =>
+            _orderService.UpdateOrderStatusAsync(orderId, OrderStatus.Failed, "admin_manual_override: test"));
+
+        // 不應該呼叫 UpdateAndAddStatusLogAsync（轉換失敗，無需寫 DB）
+        await _orderRepository.DidNotReceive().UpdateAndAddStatusLogAsync(
+            Arg.Any<Order>(), Arg.Any<OrderStatusLog>(), Arg.Any<CancellationToken>());
+    }
 }
+

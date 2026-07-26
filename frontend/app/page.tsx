@@ -26,6 +26,14 @@ export default function Home() {
                   <span className="text-sm text-gray-700">
                     歡迎, {user.displayName}
                   </span>
+                  {user.role === 'Admin' && (
+                    <Link
+                      href="/admin/orders"
+                      className="text-purple-600 hover:text-purple-800 font-medium text-sm"
+                    >
+                      管理後台
+                    </Link>
+                  )}
                   <button
                     onClick={logout}
                     className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded"

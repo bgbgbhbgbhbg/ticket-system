@@ -69,6 +69,14 @@ export interface ApiError {
   traceId?: string;
 }
 
+// Admin 分頁訂單回應（對應 api-spec.yaml Admin 區塊）
+export interface PagedOrderResponse {
+  items: Order[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export const apiClient = {
 
   /**
@@ -157,6 +165,54 @@ export const apiClient = {
         throw new Error('找不到此訂單');
       }
       throw new Error(`Failed to fetch order: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Admin 查詢所有訂單（GET /admin/orders）
+   */
+  async adminGetOrders(
+    token: string,
+    params: { status?: string; page?: number; pageSize?: number }
+  ): Promise<PagedOrderResponse> {
+    const query = new URLSearchParams();
+    if (params.status) query.set('status', params.status);
+    if (params.page) query.set('page', String(params.page));
+    if (params.pageSize) query.set('pageSize', String(params.pageSize));
+
+    const response = await fetch(`${API_BASE_URL}/admin/orders?${query}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      const error: ApiError = await response.json().catch(() => ({ errorCode: 'UNKNOWN', message: response.statusText }));
+      throw error;
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Admin 手動更新訂單狀態（PATCH /admin/orders/{id}/status）
+   */
+  async adminUpdateOrderStatus(
+    token: string,
+    orderId: string,
+    toStatus: 'Success' | 'Failed',
+    reason: string
+  ): Promise<Order> {
+    const response = await fetch(`${API_BASE_URL}/admin/orders/${orderId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ toStatus, reason }),
+    });
+
+    if (!response.ok) {
+      const error: ApiError = await response.json().catch(() => ({ errorCode: 'UNKNOWN', message: response.statusText }));
+      throw error;
     }
 
     return response.json();
