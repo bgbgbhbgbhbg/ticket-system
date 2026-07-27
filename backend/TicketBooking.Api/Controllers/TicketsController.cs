@@ -82,4 +82,39 @@ public class TicketsController : ControllerBase
 
         return Ok(response);
     }
+
+    /// <summary>
+    /// 查詢票券即時庫存（Cache-Aside）
+    /// GET /api/v1/tickets/{id}/inventory
+    /// 對應 docs/3_specs/cache-strategy.md 第 3 節
+    /// </summary>
+    [HttpGet("{id:guid}/inventory")]
+    [ProducesResponseType(typeof(InventoryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<InventoryResponse>> GetTicketInventory(Guid id, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Fetching inventory for ticket {TicketId}", id);
+
+        try
+        {
+            var (availableQuantity, cacheHit) = await _ticketService.GetInventoryAsync(id, cancellationToken);
+
+            return Ok(new InventoryResponse
+            {
+                TicketId = id,
+                AvailableQuantity = availableQuantity,
+                CacheHit = cacheHit
+            });
+        }
+        catch (TicketBooking.Application.Exceptions.TicketNotFoundException)
+        {
+            _logger.LogWarning("Ticket not found for inventory query: {TicketId}", id);
+            return NotFound(new ErrorResponse
+            {
+                ErrorCode = "TICKET_NOT_FOUND",
+                Message = "找不到此票券",
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+    }
 }

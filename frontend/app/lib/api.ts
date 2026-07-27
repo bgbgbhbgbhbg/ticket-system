@@ -19,6 +19,13 @@ export const API_ENDPOINTS = {
       name: 'GetTicketById',
       fullUrl: `${API_BASE_URL}/tickets/${id}`,
     }),
+    // Task 8: 即時庫存（Cache-Aside）
+    inventory: (id: string) => ({
+      path: `/tickets/${id}/inventory`,
+      method: 'GET',
+      name: 'GetTicketInventory',
+      fullUrl: `${API_BASE_URL}/tickets/${id}/inventory`,
+    }),
   },
   // Task 4: Orders endpoints
   orders: {
@@ -45,6 +52,13 @@ export interface Ticket {
   eventStartAt: string;
   price: number;
   availableQuantity: number;
+}
+
+// 庫存查詢回應（Task 8 Cache-Aside，對應 api-spec.yaml inventory endpoint）
+export interface InventoryResponse {
+  ticketId: string;
+  availableQuantity: number;
+  cacheHit: boolean;
 }
 
 // 訂單相關型別定義（對應 api-spec.yaml OrderResponse schema）
@@ -114,6 +128,32 @@ export const apiClient = {
         throw new Error('找不到此票券');
       }
       throw new Error(`Failed to fetch ticket: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * 查詢票券即時庫存（Cache-Aside）
+   * GET /tickets/{id}/inventory
+   * 回傳 availableQuantity 與 cacheHit，對應 cache-strategy.md 第 3、6 節
+   */
+  async getTicketInventory(id: string): Promise<InventoryResponse> {
+    const endpoint = API_ENDPOINTS.tickets.inventory(id);
+    const response = await fetch(endpoint.fullUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // 不 cache：庫存是高頻異動資料，需要每次都打後端（後端自己有 Redis Cache）
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('找不到此票券');
+      }
+      throw new Error(`Failed to fetch inventory: ${response.statusText}`);
     }
 
     return response.json();

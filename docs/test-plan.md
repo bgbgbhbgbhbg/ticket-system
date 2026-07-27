@@ -3,7 +3,16 @@
 > 把每份規格對應到該寫的測試案例,確保「規格驅動」不只是寫文件,而是真的用文件去驅動測試撰寫。開發時勾選對照,避免漏測。
 
 ---
+## 1.0 單元測試 — TicketService（Task 8 Redis Cache-Aside）
 
+| 測試案例編號 | 測試案例 | 狀態 |
+|---|---|---|
+| UT-CAC-01 | Cache Hit：GetAsync 有值時直接回傳，不查 DB，CacheHit=true | ✅ |
+| UT-CAC-02 | Cache Miss：GetAsync 回傳 null 時查 DB，寫回 cache，CacheHit=false | ✅ |
+| UT-CAC-03 | 票券不存在：cache miss 且 DB 查無結果，拋出 TicketNotFoundException | ✅ |
+| UT-CAC-04 | 降級行為：ICacheService.GetAsync 拋例外，TicketService 降級查 DB，API 仍正常回傳 | ✅ |
+
+---
 ## 1.5 單元測試 — OrderService（Task 4）
 
 | 測試案例編號 | 測試案例 | 狀態 |

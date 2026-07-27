@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiClient, type Ticket, type ApiError } from '@/app/lib/api';
+import { apiClient, type Ticket, type InventoryResponse, type ApiError } from '@/app/lib/api';
 import { useAuth } from '@/app/lib/auth-context';
 
 interface TicketDetailProps {
@@ -13,13 +13,28 @@ export default function TicketDetail({ ticketId }: TicketDetailProps) {
   const router = useRouter();
   const { user, token } = useAuth();
   const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [inventory, setInventory] = useState<InventoryResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [inventoryLoading, setInventoryLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // 購票表單狀態
   const [quantity, setQuantity] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
+
+  // 取得即時庫存（Cache-Aside，對應 cache-strategy.md 第 3 節）
+  const refreshInventory = useCallback(async () => {
+    setInventoryLoading(true);
+    try {
+      const data = await apiClient.getTicketInventory(ticketId);
+      setInventory(data);
+    } catch {
+      // 庫存查詢失敗時沿用票券詳情的 availableQuantity（降級顯示）
+    } finally {
+      setInventoryLoading(false);
+    }
+  }, [ticketId]);
 
   useEffect(() => {
     async function loadTicket() {
@@ -38,6 +53,16 @@ export default function TicketDetail({ ticketId }: TicketDetailProps) {
 
     loadTicket();
   }, [ticketId]);
+
+  // 票券詳情載入完成後，立即查一次即時庫存
+  useEffect(() => {
+    if (ticket) {
+      refreshInventory();
+    }
+  }, [ticket, refreshInventory]);
+
+  // 顯示庫存：優先用即時庫存，fallback 用票券詳情的值
+  const currentAvailableQuantity = inventory?.availableQuantity ?? ticket?.availableQuantity ?? 0;
 
   async function handleOrder() {
     if (!token || !ticket) return;
@@ -134,13 +159,32 @@ export default function TicketDetail({ ticketId }: TicketDetailProps) {
 
           <div className="flex justify-between items-center">
             <span className="text-gray-600">剩餘票數</span>
-            <span className={`text-lg font-semibold ${
-              ticket.availableQuantity > 50 ? 'text-green-600' :
-              ticket.availableQuantity > 10 ? 'text-yellow-600' :
-              'text-red-600'
-            }`}>
-              {ticket.availableQuantity} 張
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={`text-lg font-semibold ${
+                currentAvailableQuantity > 50 ? 'text-green-600' :
+                currentAvailableQuantity > 10 ? 'text-yellow-600' :
+                'text-red-600'
+              }`}>
+                {inventoryLoading ? '...' : `${currentAvailableQuantity} 張`}
+              </span>
+              <button
+                onClick={refreshInventory}
+                disabled={inventoryLoading}
+                className="text-xs text-gray-400 hover:text-blue-500 transition-colors"
+                title="重新整理庫存"
+              >
+                ↻
+              </button>
+              {inventory && (
+                <span className={`text-xs px-1.5 py-0.5 rounded ${
+                  inventory.cacheHit
+                    ? 'bg-green-100 text-green-600'
+                    : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {inventory.cacheHit ? 'cached' : 'live'}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="flex justify-between items-center">
@@ -193,14 +237,14 @@ export default function TicketDetail({ ticketId }: TicketDetailProps) {
 
               <button
                 onClick={handleOrder}
-                disabled={submitting || ticket.availableQuantity === 0}
+                disabled={submitting || currentAvailableQuantity === 0}
                 className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors ${
-                  submitting || ticket.availableQuantity === 0
+                  submitting || currentAvailableQuantity === 0
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700 text-white'
                 }`}
               >
-                {submitting ? '處理中...' : ticket.availableQuantity === 0 ? '已售完' : '立即購票'}
+                {submitting ? '處理中...' : currentAvailableQuantity === 0 ? '已售完' : '立即購票'}
               </button>
             </div>
           ) : (
