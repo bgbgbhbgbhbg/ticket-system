@@ -94,6 +94,19 @@ builder.Services.AddScoped<TicketBooking.Application.Interfaces.Repositories.ITi
 builder.Services.AddScoped<TicketBooking.Application.Interfaces.Services.ITicketService,
     TicketBooking.Application.Services.TicketService>();
 
+// Redis Cache（IConnectionMultiplexer 用 Singleton，不每次新建連線）
+var redisConnectionString = builder.Configuration["ConnectionStrings:Redis"];
+if (string.IsNullOrEmpty(redisConnectionString))
+{
+    throw new InvalidOperationException(
+        "Redis 連線字串未配置。請執行:\n" +
+        "dotnet user-secrets set \"ConnectionStrings:Redis\" \"localhost:6379\"");
+}
+builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(
+    StackExchange.Redis.ConnectionMultiplexer.Connect(redisConnectionString));
+builder.Services.AddSingleton<TicketBooking.Application.Interfaces.Caching.ICacheService,
+    TicketBooking.Infrastructure.Cache.RedisCacheService>();
+
 // Auth 相關服務
 builder.Services.AddScoped<TicketBooking.Application.Interfaces.Repositories.IUserRepository,
     TicketBooking.Infrastructure.Repositories.UserRepository>();

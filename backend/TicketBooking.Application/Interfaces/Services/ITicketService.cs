@@ -17,4 +17,15 @@ public interface ITicketService
     /// </summary>
     /// <returns>找到則回傳 Ticket，找不到回傳 null</returns>
     Task<Ticket?> GetTicketByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 查詢票券即時庫存（Cache-Aside 模式）。
+    /// 對應 docs/3_specs/cache-strategy.md 第 3 節。
+    /// </summary>
+    /// <returns>
+    /// AvailableQuantity: 剩餘庫存。
+    /// CacheHit: true 表示資料來自 Redis cache，false 表示直接查 DB。
+    /// </returns>
+    /// <exception cref="TicketBooking.Application.Exceptions.TicketNotFoundException">找不到票券時拋出</exception>
+    Task<(int AvailableQuantity, bool CacheHit)> GetInventoryAsync(Guid ticketId, CancellationToken cancellationToken = default);
 }

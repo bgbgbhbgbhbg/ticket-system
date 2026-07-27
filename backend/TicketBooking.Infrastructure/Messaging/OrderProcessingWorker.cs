@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Npgsql;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using TicketBooking.Application.Interfaces.Caching;
 using TicketBooking.Application.Interfaces.Services;
 
 namespace TicketBooking.Infrastructure.Messaging;
@@ -31,15 +32,18 @@ public class OrderProcessingWorker : BackgroundService
     private const string RetryCountHeader = "x-retry-count";
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IConfiguration _configuration;
+    private readonly ICacheService _cacheService;
     private readonly ILogger<OrderProcessingWorker> _logger;
 
     public OrderProcessingWorker(
         IServiceScopeFactory scopeFactory,
         IConfiguration configuration,
+        ICacheService cacheService,
         ILogger<OrderProcessingWorker> logger)
     {
         _scopeFactory = scopeFactory;
         _configuration = configuration;
+        _cacheService = cacheService;
         _logger = logger;
     }
 
@@ -137,6 +141,17 @@ public class OrderProcessingWorker : BackgroundService
             var orderProcessingService = scope.ServiceProvider.GetRequiredService<IOrderProcessingService>();
 
             await orderProcessingService.ProcessOrderAsync(orderId.Value, stoppingToken);
+
+            // ── 訂單處理完成後主動 invalidate 庫存 cache ─────────────────────
+            // 對應 cache-strategy.md 第 4 節：Success 或 Failed 都要 DEL，
+            // 讓下一次庫存查詢自然觸發 Cache-Aside 重新載入最新值。
+            // 放在 DB transaction commit 之後（ProcessOrderAsync 已 commit），
+            // 不放在 transaction 內，cache 失敗不影響訂單結果。
+            if (message.Payload?.TicketId is Guid ticketId)
+            {
+                await _cacheService.DeleteAsync($"ticket:{ticketId}:inventory", stoppingToken);
+                _logger.LogInformation("已 invalidate ticket {TicketId} 庫存 cache", ticketId);
+            }
 
             // 業務流程完整執行完（不管 Success 還是 Failed）→ ack
             await channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
